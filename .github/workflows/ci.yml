@@ -2,6 +2,9 @@ name: FlagSync CI
 
 on:
   push:
+    branches:
+      - main
+      - develop
   pull_request:
     branches:
       - main
@@ -58,7 +61,6 @@ jobs:
         working-directory: backend
 
     env:
-      # Dummy values used for tests that do not contact the real database.
       DB_USER: test_user
       DB_PASSWORD: test_password
       DB_HOST: localhost
@@ -80,7 +82,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest httpx bandit pip-audit
+
+      - name: Run Ruff linting
+        run: ruff check .
+
+      - name: Check Ruff formatting
+        run: ruff format --check .
 
       - name: Run backend tests
         run: pytest -q
