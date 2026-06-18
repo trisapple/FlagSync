@@ -1,0 +1,92 @@
+name: FlagSync CI
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build React application
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8000/api
+
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=high
+
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      # Dummy values used for tests that do not contact the real database.
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_NAME: test_database
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx bandit pip-audit
+
+      - name: Run backend tests
+        run: pytest -q
+
+      - name: Run Bandit security scan
+        run: bandit -r app -x tests
+
+      - name: Audit Python dependencies
+        run: pip-audit -r requirements.txt
