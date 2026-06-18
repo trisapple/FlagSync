@@ -1,6 +1,7 @@
 # Frontend
 node_modules/
 dist/
+.vite
 
 # Backend Python environment and cache
 .venv/
