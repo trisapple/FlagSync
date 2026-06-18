@@ -1,0 +1,26 @@
+# Frontend
+node_modules/
+dist/
+
+# Backend Python environment and cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
