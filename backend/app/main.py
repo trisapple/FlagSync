@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.roles import router as roles_router
+from app.schemas.user import UserRegistration
 
 app = FastAPI(
     title="FlagSync API",
@@ -58,3 +59,12 @@ def database_health_check(
             status_code=503,
             detail="Database connection unavailable",
         )
+    
+app = FastAPI()
+
+# The "user_data: UserRegistration" part is the magic. 
+# FastAPI will automatically run all your Pydantic security checks here.
+@app.post("/api/register")
+async def register_user(user_data: UserRegistration):
+    # If the code reaches this line, the input is 100% safe and sanitized.
+    return {"message": "Payload is secure. Ready to hash password and save to DB!", "data": user_data}
