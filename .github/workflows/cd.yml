@@ -3,7 +3,7 @@ name: FlagSync CD
 on:
   push:
     branches:
-      - develop-tristan
+      - feature/aws-ec2-cd-pipeline
   workflow_dispatch:
 
 permissions:
@@ -88,8 +88,8 @@ jobs:
               git clone "$REPO_URL" "$DEPLOY_PATH"
             fi
             cd "$DEPLOY_PATH"
-            git fetch origin develop-tristan
-            git reset --hard origin/develop-tristan
+            git fetch origin feature/aws-ec2-cd-pipeline
+            git reset --hard origin/feature/aws-ec2-cd-pipeline
             cd backend
             if [ ! -d ".venv" ]; then
               python3 -m venv .venv
