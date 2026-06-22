@@ -15,7 +15,7 @@ die()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || die "Run with sudo: sudo bash setup.sh"
 
-# Collect config
+# 0. Minimal config
 log "Configure deployment"
 echo ""
 
@@ -26,19 +26,9 @@ DEFAULT_CLONE_DIR="$(pwd)/flagsync"
 read -rp "  Clone directory [$DEFAULT_CLONE_DIR]: " CLONE_DIR
 CLONE_DIR="${CLONE_DIR:-$DEFAULT_CLONE_DIR}"
 
-read -rp "  DB name     [flagsync]: " DB_NAME;   DB_NAME="${DB_NAME:-flagsync}"
-read -rp "  DB user     [flagsync]: " DB_USER;   DB_USER="${DB_USER:-flagsync}"
-read -rsp "  DB password: " DB_PASSWORD; echo
-[[ -n "$DB_PASSWORD" ]] || die "DB password cannot be empty"
-
-echo ""
-DETECTED_IP=$(hostname -I | awk '{print $1}')
-read -rp "  Server hostname or IP [$DETECTED_IP]: " SERVER_HOST
-SERVER_HOST="${SERVER_HOST:-$DETECTED_IP}"
-
 echo ""
 
-# 0. GitHub deploy key
+# 1. GitHub deploy key
 log "Setting up GitHub deploy key..."
 
 DEPLOY_USER_HOME=$(getent passwd "$CURRENT_USER" | cut -d: -f6)
@@ -55,7 +45,6 @@ else
     log "Deploy key already exists at $KEY_PATH — skipping generation"
 fi
 
-# Write SSH config so git uses this key for github.com
 SSH_CONFIG="$SSH_DIR/config"
 if ! grep -q "flagsync_deploy" "$SSH_CONFIG" 2>/dev/null; then
     cat >> "$SSH_CONFIG" <<SSHCONF
@@ -71,6 +60,8 @@ SSHCONF
 fi
 
 chown "$CURRENT_USER:$CURRENT_USER" "$KEY_PATH" "$KEY_PATH.pub"
+chmod 600 "$KEY_PATH"
+chmod 644 "$KEY_PATH.pub"
 
 log "Testing SSH connection to GitHub..."
 _ssh_check() { sudo -u "$CURRENT_USER" ssh -T -o StrictHostKeyChecking=accept-new git@github.com 2>&1 || true; }
@@ -95,8 +86,8 @@ fi
 
 echo ""
 
-# 1. Clone repository
-DEPLOY_BRANCH="develop-tristan"
+# 2. Clone repository
+DEPLOY_BRANCH="feature/aws-ec2-cd-pipeline"
 log "Cloning repository (branch: $DEPLOY_BRANCH)..."
 if [[ -d "$CLONE_DIR/.git" ]]; then
     log "Repo already exists at $CLONE_DIR — pulling latest"
@@ -112,12 +103,95 @@ PROJECT_ROOT="$CLONE_DIR"
 
 echo ""
 
-# 2. System packages
+# 3. Load .env config — prefer files already on disk, else wait for scp, else prompt
+BACKEND_ENV="$PROJECT_ROOT/backend/.env"
+FRONTEND_ENV="$PROJECT_ROOT/frontend/.env"
+
+if [[ ! -f "$BACKEND_ENV" && ! -f "$FRONTEND_ENV" ]]; then
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+    warn "No .env files found in $PROJECT_ROOT"
+    echo ""
+    echo "  Copy your .env files now from another terminal:"
+    echo "    scp backend.env $CURRENT_USER@$SERVER_IP:$BACKEND_ENV"
+    echo "    scp frontend.env $CURRENT_USER@$SERVER_IP:$FRONTEND_ENV"
+    echo ""
+    read -rp "  Press Enter when done (leave files missing to enter credentials manually)..."
+    echo ""
+fi
+
+# Backend config
+if [[ -f "$BACKEND_ENV" ]]; then
+    log "Loading database config from $BACKEND_ENV"
+    set -a; source "$BACKEND_ENV"; set +a
+    [[ -n "${DB_PASSWORD:-}" ]] || die "DB_PASSWORD is not set in $BACKEND_ENV"
+elif [[ -f "$(pwd)/backend.env" ]]; then
+    log "Loading database config from ./backend.env"
+    set -a; source "$(pwd)/backend.env"; set +a
+    [[ -n "${DB_PASSWORD:-}" ]] || die "DB_PASSWORD is not set in ./backend.env"
+else
+    warn "Entering database credentials manually"
+    echo ""
+    read -rp "  DB host: " DB_HOST
+    [[ -n "$DB_HOST" ]] || die "DB host cannot be empty"
+    read -rp "  DB port: " DB_PORT
+    [[ -n "$DB_PORT" ]] || die "DB port cannot be empty"
+    read -rp "  DB name: " DB_NAME
+    [[ -n "$DB_NAME" ]] || die "DB name cannot be empty"
+    read -rp "  DB user: " DB_USER
+    [[ -n "$DB_USER" ]] || die "DB user cannot be empty"
+    read -rsp "  DB password: " DB_PASSWORD; echo
+    [[ -n "$DB_PASSWORD" ]] || die "DB password cannot be empty"
+fi
+
+echo ""
+
+# Frontend config
+if [[ -f "$FRONTEND_ENV" ]]; then
+    log "Loading frontend config from $FRONTEND_ENV"
+    set -a; source "$FRONTEND_ENV"; set +a
+    SERVER_HOST=$(echo "${VITE_API_BASE_URL:-}" | sed -E 's|https?://([^/]+).*|\1|')
+    [[ -n "$SERVER_HOST" ]] || die "Could not parse host from VITE_API_BASE_URL in $FRONTEND_ENV"
+elif [[ -f "$(pwd)/frontend.env" ]]; then
+    log "Loading frontend config from ./frontend.env"
+    set -a; source "$(pwd)/frontend.env"; set +a
+    SERVER_HOST=$(echo "${VITE_API_BASE_URL:-}" | sed -E 's|https?://([^/]+).*|\1|')
+    [[ -n "$SERVER_HOST" ]] || die "Could not parse host from VITE_API_BASE_URL in ./frontend.env"
+else
+    warn "No frontend/.env found — enter server details"
+    echo ""
+    DETECTED_IP=$(hostname -I | awk '{print $1}')
+    read -rp "  Server hostname or IP [$DETECTED_IP]: " SERVER_HOST
+    SERVER_HOST="${SERVER_HOST:-$DETECTED_IP}"
+fi
+
+echo ""
+
+# Write .env files if not already present
+if [[ ! -f "$BACKEND_ENV" ]]; then
+    cat > "$BACKEND_ENV" <<EOF
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+DB_HOST=$DB_HOST
+DB_PORT=$DB_PORT
+DB_NAME=$DB_NAME
+EOF
+    log "Created backend/.env"
+fi
+
+if [[ ! -f "$FRONTEND_ENV" ]]; then
+    cat > "$FRONTEND_ENV" <<EOF
+VITE_API_BASE_URL=http://$SERVER_HOST/api
+EOF
+    log "Created frontend/.env"
+fi
+
+echo ""
+
+# 4. System packages
 log "Installing system packages..."
 apt-get update -q
 apt-get install -y -q \
     curl nginx \
-    postgresql postgresql-contrib \
     libpq-dev build-essential \
     python3.12 python3.12-venv python3.12-dev
 
@@ -128,20 +202,7 @@ if ! command -v node &>/dev/null \
     apt-get install -y -q nodejs
 fi
 
-# 3. PostgreSQL
-log "Setting up PostgreSQL..."
-systemctl enable --now postgresql
-
-sudo -u postgres psql -c \
-    "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" 2>/dev/null \
-    || sudo -u postgres psql -c \
-    "ALTER USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
-
-sudo -u postgres psql -c \
-    "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null \
-    || warn "Database '$DB_NAME' already exists — skipping"
-
-# 4. Backend
+# 5. Backend
 log "Setting up backend..."
 cd "$PROJECT_ROOT/backend"
 
@@ -149,42 +210,25 @@ python3.12 -m venv .venv
 source .venv/bin/activate
 pip install --quiet -r requirements.txt
 
-cat > "$PROJECT_ROOT/backend/.env" <<EOF
-DB_USER=$DB_USER
-DB_PASSWORD=$DB_PASSWORD
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=$DB_NAME
-EOF
-log "Created backend/.env"
-
 log "Creating database tables..."
-DB_USER=$DB_USER DB_PASSWORD=$DB_PASSWORD DB_HOST=localhost DB_PORT=5432 DB_NAME=$DB_NAME \
-    python3.12 -c "
+python3.12 -c "
 import app.models.role
 from app.database import Base, engine
 Base.metadata.create_all(bind=engine)
 "
 deactivate
 
-# 5. Frontend build
+# 6. Frontend build
 log "Building frontend..."
 cd "$PROJECT_ROOT/frontend"
 npm ci --silent
-
-# nginx reverse-proxies both on port 80, so /api works as a relative base URL.
-cat > "$PROJECT_ROOT/frontend/.env" <<EOF
-VITE_API_BASE_URL=http://$SERVER_HOST/api
-EOF
-
 npm run build
 chown -R "$CURRENT_USER:$CURRENT_USER" "$PROJECT_ROOT/frontend/dist"
 log "Frontend built → frontend/dist/"
 
-# 6. nginx
+# 7. nginx
 log "Configuring nginx..."
 
-# o+x lets nginx (www-data) traverse the home dir without exposing listings.
 OWNER_HOME=$(getent passwd "$CURRENT_USER" | cut -d: -f6)
 if [[ -n "$OWNER_HOME" && "$OWNER_HOME" != "/" && "$PROJECT_ROOT" == "$OWNER_HOME"* ]]; then
     chmod o+x "$OWNER_HOME"
@@ -195,16 +239,13 @@ server {
     listen 80;
     server_name $SERVER_HOST;
 
-    # Serve the built React app
     root $PROJECT_ROOT/frontend/dist;
     index index.html;
 
-    # React Router — unknown paths fall back to index.html
     location / {
         try_files \$uri \$uri/ /index.html;
     }
 
-    # Proxy all /api requests to uvicorn
     location /api {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host \$host;
@@ -221,7 +262,7 @@ nginx -t
 systemctl enable --now nginx
 systemctl reload nginx
 
-# 7. Backend systemd service
+# 8. Backend systemd service
 VENV_BIN="$PROJECT_ROOT/backend/.venv/bin"
 
 log "Installing flagsync-backend systemd service..."
@@ -229,8 +270,7 @@ log "Installing flagsync-backend systemd service..."
 cat > /etc/systemd/system/flagsync-backend.service <<EOF
 [Unit]
 Description=FlagSync Backend (FastAPI/uvicorn)
-After=network.target postgresql.service
-Requires=postgresql.service
+After=network.target
 
 [Service]
 User=$CURRENT_USER
