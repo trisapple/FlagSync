@@ -2,13 +2,34 @@
   box-sizing: border-box;
 }
 
+:root {
+  color-scheme: light;
+  --bg: #f3efe8;
+  --bg-accent: #d8e7f2;
+  --panel: rgba(255, 255, 255, 0.82);
+  --border: rgba(15, 23, 42, 0.12);
+  --ink: #0f172a;
+  --muted: #526071;
+  --primary: #0f766e;
+  --primary-strong: #115e59;
+  --danger: #b42318;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f5f7fa;
-  color: #1f2937;
+  font-family:
+    "Segoe UI",
+    Tahoma,
+    Geneva,
+    Verdana,
+    sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(216, 231, 242, 0.95), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(243, 190, 167, 0.26), transparent 32%),
+    linear-gradient(180deg, var(--bg), #ffffff 62%);
+  color: var(--ink);
 }
 
 button,
@@ -16,4 +37,8 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+a {
+  color: inherit;
 }

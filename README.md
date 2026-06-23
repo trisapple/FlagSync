@@ -8,6 +8,13 @@ FlagSync is a full-stack web app for discovering and managing CTF competitions a
 - Backend: FastAPI, SQLAlchemy, PostgreSQL
 - Tooling: ESLint, Ruff, Pytest, Bandit, npm audit, pip-audit
 
+## Security Features
+
+- Passwords are hashed with Passlib using Argon2 or bcrypt.
+- Login sessions are stored in HttpOnly JWT cookies.
+- Failed login attempts are tracked with Redis and temporarily locked out.
+- The backend bootstraps reference roles on startup and can seed an admin user from environment variables.
+
 ## Project Structure
 
 ```text
@@ -49,7 +56,14 @@ DB_PASSWORD=
 DB_HOST=
 DB_PORT=
 DB_NAME=
+SECRET_KEY=
+REDIS_URL=
+CTF_BOOTSTRAP_ADMIN_EMAIL=
+CTF_BOOTSTRAP_ADMIN_PASSWORD=
 ```
+
+If you skip the PostgreSQL settings during local development or tests, the backend
+falls back to a local SQLite database at `backend/flagsync.db`.
 
 Then start the API:
 
