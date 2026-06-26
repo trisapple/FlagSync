@@ -193,7 +193,7 @@ apt-get update -q
 apt-get install -y -q \
     curl nginx \
     libpq-dev build-essential \
-    python3.12 python3.12-venv python3.12-dev
+    python3 python3-venv python3-dev
 
 if ! command -v node &>/dev/null \
         || [[ "$(node --version | cut -dv -f2 | cut -d. -f1)" -lt 22 ]]; then
@@ -206,12 +206,12 @@ fi
 log "Setting up backend..."
 cd "$PROJECT_ROOT/backend"
 
-python3.12 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install --quiet -r requirements.txt
 
 log "Creating database tables..."
-python3.12 -c "
+python3 -c "
 import app.models.role
 from app.database import Base, engine
 Base.metadata.create_all(bind=engine)
