@@ -1,0 +1,254 @@
+.registered-events-main {
+  max-width: 1180px;
+}
+
+.registered-events-header {
+  display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 26px;
+}
+
+.registered-events-header h1 {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.registered-events-header p:last-child {
+  margin: 10px 0 0;
+  color: #64748b;
+}
+
+.registered-events-header > a {
+  flex: 0 0 auto;
+  padding: 11px 15px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #4f46e5;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.registered-events-header > a:hover {
+  background: #3730a3;
+}
+
+.registered-events-summary {
+  display: inline-flex;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 22px;
+  padding: 14px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #64748b;
+  background: #ffffff;
+  font-size: 0.8rem;
+}
+
+.registered-events-summary strong {
+  color: #4f46e5;
+  font-size: 1.35rem;
+}
+
+.registered-events-summary small {
+  color: #94a3b8;
+}
+
+.registered-events-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.registered-event-card {
+  display: flex;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 5%);
+}
+
+.registered-event-date {
+  display: grid;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  place-items: center;
+  width: 54px;
+  overflow: hidden;
+  border: 1px solid #e0e7ff;
+  border-radius: 12px;
+  color: #312e81;
+  background: #eef2ff;
+}
+
+.registered-event-date span {
+  width: 100%;
+  padding: 5px 0;
+  color: #ffffff;
+  background: #4f46e5;
+  font-size: 0.64rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.registered-event-date strong {
+  padding: 8px 0;
+  font-size: 1.2rem;
+}
+
+.registered-event-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.registered-event-labels {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.registered-event-labels span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #475569;
+  background: #f1f5f9;
+  font-size: 0.63rem;
+  font-weight: 800;
+}
+
+.registered-event-content > p {
+  margin: 0 0 5px;
+  color: #4f46e5;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.registered-event-content h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 1.08rem;
+}
+
+.registered-event-content dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.registered-event-content dt {
+  color: #94a3b8;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.registered-event-content dd {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.registered-event-content > a {
+  color: #4f46e5;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.registered-event-content > a:hover {
+  text-decoration: underline;
+}
+
+.registered-events-empty {
+  padding: 70px 24px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  color: #64748b;
+  background: #ffffff;
+  text-align: center;
+}
+
+.registered-events-empty > span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  place-items: center;
+  border-radius: 14px;
+  color: #ffffff;
+  background: #4f46e5;
+  font-weight: 900;
+}
+
+.registered-events-empty h2 {
+  margin: 18px 0 0;
+  color: #111827;
+}
+
+.registered-events-empty p {
+  margin: 8px 0 22px;
+}
+
+.registered-events-empty a {
+  display: inline-flex;
+  padding: 11px 16px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #4f46e5;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.registered-events-auth {
+  display: grid;
+  min-height: calc(100vh - 178px);
+  padding: 40px;
+  place-items: center;
+  text-align: center;
+}
+
+.registered-events-auth h1 {
+  margin: 0;
+  color: #111827;
+}
+
+.registered-events-auth p:not(.public-eyebrow) {
+  margin: 12px 0 24px;
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .registered-events-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .registered-events-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .registered-events-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .registered-event-card {
+    flex-direction: column;
+  }
+}

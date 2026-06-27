@@ -1,0 +1,47 @@
+.audit-logs-main { max-width: 1320px; }
+.audit-logs-header { display: flex; gap: 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 26px; }
+.audit-logs-header h1 { margin: 0; color: #111827; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.04em; }
+.audit-logs-header p:last-child { margin: 10px 0 0; color: #64748b; }
+.audit-logs-total { display: flex; flex-direction: column; min-width: 130px; padding: 14px 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+.audit-logs-total span { color: #64748b; font-size: .72rem; }
+.audit-logs-total strong { margin-top: 5px; color: #4f46e5; font-size: 1.45rem; }
+.audit-logs-panel { overflow: hidden; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; box-shadow: 0 12px 30px rgb(15 23 42 / 5%); }
+.audit-log-filters { display: grid; grid-template-columns: minmax(180px, 1fr) 145px minmax(180px, 1fr) 145px 145px auto; gap: 12px; align-items: end; padding: 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.audit-log-filters > div { display: grid; gap: 7px; }
+.audit-log-filters label { color: #475569; font-size: .7rem; font-weight: 800; }
+.audit-log-filters input, .audit-log-filters select { min-width: 0; min-height: 42px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #fff; }
+.audit-log-filters input:focus, .audit-log-filters select:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgb(79 70 229 / 11%); }
+.audit-filter-actions { display: flex !important; flex-direction: row; gap: 7px !important; }
+.audit-filter-actions button { min-height: 42px; padding: 0 12px; border: 1px solid #c7d2fe; border-radius: 8px; color: #4338ca; background: #fff; font-weight: 800; cursor: pointer; }
+.audit-filter-actions button:first-child { color: #fff; background: #4f46e5; }
+.audit-logs-table-wrap { overflow-x: auto; }
+.audit-logs-table { width: 100%; border-collapse: collapse; }
+.audit-logs-table th, .audit-logs-table td { padding: 14px 16px; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: .74rem; text-align: left; vertical-align: middle; }
+.audit-logs-table th { color: #94a3b8; font-size: .63rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.audit-logs-table td:first-child { white-space: nowrap; }
+.audit-logs-table td strong, .audit-logs-table td small { display: block; }
+.audit-logs-table td strong { color: #334155; text-transform: capitalize; }
+.audit-logs-table td small { max-width: 180px; overflow: hidden; margin-top: 3px; color: #94a3b8; text-overflow: ellipsis; white-space: nowrap; }
+.audit-logs-table td button { padding: 7px 9px; border: 1px solid #c7d2fe; border-radius: 7px; color: #4338ca; background: #fff; font-size: .68rem; font-weight: 800; cursor: pointer; }
+.audit-actor-unknown { color: #94a3b8; font-style: italic; }
+.audit-result { display: inline-flex; padding: 5px 8px; border-radius: 999px; background: #f1f5f9; font-size: .65rem; font-weight: 900; text-transform: capitalize; }
+.audit-result-success { color: #047857; background: #d1fae5; }
+.audit-result-failure, .audit-result-denied { color: #b91c1c; background: #fee2e2; }
+.audit-logs-state { padding: 72px 20px; color: #64748b; text-align: center; }
+.audit-logs-state h2 { margin: 0; color: #111827; }
+.audit-logs-state p { margin: 8px 0 0; }
+.audit-logs-error { color: #b91c1c; background: #fffafa; }
+.audit-pagination { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; color: #64748b; font-size: .74rem; }
+.audit-pagination > div { display: flex; gap: 7px; }
+.audit-pagination button { padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 7px; color: #334155; background: #fff; font-size: .7rem; font-weight: 700; cursor: pointer; }
+.audit-pagination button:disabled { cursor: not-allowed; opacity: .45; }
+
+@media (max-width: 1100px) {
+  .audit-log-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .audit-logs-header { align-items: flex-start; flex-direction: column; }
+  .audit-logs-total { width: 100%; }
+  .audit-log-filters { grid-template-columns: 1fr; }
+  .audit-pagination { align-items: flex-start; flex-direction: column; gap: 12px; }
+}

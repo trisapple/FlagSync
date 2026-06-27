@@ -1,0 +1,130 @@
+.audit-modal-backdrop {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  padding: 28px;
+  place-items: center;
+  background: rgb(15 23 42 / 58%);
+  backdrop-filter: blur(4px);
+}
+
+.audit-details-modal {
+  width: min(100%, 620px);
+  overflow: hidden;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 30px 80px rgb(15 23 42 / 28%);
+}
+
+.audit-details-modal > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 26px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.audit-details-modal > header p {
+  margin: 0 0 6px;
+  color: #4f46e5;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.audit-details-modal h2 {
+  margin: 0;
+  color: #111827;
+}
+
+.audit-details-modal > header button {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  color: #64748b;
+  background: #f1f5f9;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.audit-details-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 12px 26px;
+}
+
+.audit-details-summary > div {
+  min-width: 0;
+  padding: 13px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.audit-details-summary dt,
+.audit-safe-details dt {
+  color: #94a3b8;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.audit-details-summary dd,
+.audit-safe-details dd {
+  overflow-wrap: anywhere;
+  margin: 5px 0 0;
+  color: #334155;
+  font-size: 0.8rem;
+}
+
+.audit-safe-details {
+  padding: 20px 26px;
+}
+
+.audit-safe-details h3 {
+  margin: 0 0 14px;
+  color: #111827;
+  font-size: 0.9rem;
+}
+
+.audit-safe-details dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.audit-safe-details dl > div {
+  padding: 12px;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+
+.audit-safe-details > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.audit-details-security-note {
+  margin: 0;
+  padding: 15px 26px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .audit-modal-backdrop {
+    padding: 14px;
+    place-items: start center;
+  }
+
+  .audit-details-summary {
+    grid-template-columns: 1fr;
+  }
+}
