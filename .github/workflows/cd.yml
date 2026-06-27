@@ -84,9 +84,6 @@ jobs:
             set -e
             DEPLOY_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
             REPO_URL="${{ secrets.REPO_URL }}"
-            if [ ! -d "$DEPLOY_PATH/.git" ]; then
-              git clone "$REPO_URL" "$DEPLOY_PATH"
-            fi
             cd "$DEPLOY_PATH"
             git fetch origin develop
             git reset --hard origin/develop
