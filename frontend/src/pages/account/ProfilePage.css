@@ -255,6 +255,47 @@
   font-weight: 800;
 }
 
+.profile-danger-zone {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid #fee2e2;
+}
+
+.profile-danger-zone h3 {
+  margin: 0;
+  color: #991b1b;
+  font-size: 0.96rem;
+}
+
+.profile-danger-zone p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.profile-danger-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #b91c1c;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.profile-danger-button:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.profile-danger-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 @media (max-width: 980px) {
   .profile-content-grid {
     grid-template-columns: 1fr;

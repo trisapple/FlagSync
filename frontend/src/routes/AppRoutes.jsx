@@ -12,7 +12,7 @@ import OrganiserDashboardPage from "../pages/organiser/OrganiserDashboardPage";
 import ManageEventsPage from "../pages/organiser/ManageEventsPage";
 import UserDashboardPage from "../pages/user/UserDashboardPage";
 import RegisteredEventsPage from "../pages/user/RegisteredEventsPage";
-import ProfilePage from "../pages/account/ProfilePage";
+import AccountProfilePage from "../pages/account/ProfilePage";
 import ForbiddenPage from "../pages/errors/ForbiddenPage";
 import { DASHBOARD_PATHS } from "../utils/roleRoutes";
 
@@ -26,7 +26,7 @@ function AppRoutes() {
       <Route path="/events/registered" element={<RegisteredEventsPage />} />
       <Route path="/events/:eventId" element={<EventDetailsPage />} />
       <Route path="/organiser/events/manage" element={<ManageEventsPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/profile" element={<AccountProfilePage />} />
       <Route path="/admin/users" element={<AdminUsersPage />} />
       <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
       <Route path="/403" element={<ForbiddenPage />} />
@@ -38,10 +38,7 @@ function AppRoutes() {
         path={DASHBOARD_PATHS.organiser}
         element={<OrganiserDashboardPage />}
       />
-      <Route
-        path={DASHBOARD_PATHS.user}
-        element={<UserDashboardPage />}
-      />
+      <Route path={DASHBOARD_PATHS.user} element={<UserDashboardPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

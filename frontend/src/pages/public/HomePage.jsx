@@ -46,7 +46,7 @@ function HomePage() {
               </h1>
               <p>
                 FlagSync brings CTF competitions, hackathons, teams, and event
-                updates together—so everyone knows what is happening next.
+                updates together so everyone knows what is happening next.
               </p>
               <div className="home-hero-actions">
                 {dashboardPath ? (
@@ -98,7 +98,7 @@ function HomePage() {
                       <strong>{event.name}</strong>
                       <p>{event.detail}</p>
                     </div>
-                    <span className="home-event-meta">View →</span>
+                    <span className="home-event-meta">View -&gt;</span>
                   </article>
                 ))}
               </div>

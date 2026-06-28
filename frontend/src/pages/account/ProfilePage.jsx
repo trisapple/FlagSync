@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import { getCurrentUser } from "../../services/authService";
 import {
   changePassword,
+  deleteAccount,
   updateProfile,
 } from "../../services/accountService";
 import { getSessionUser } from "../../utils/authSession";
@@ -54,14 +56,26 @@ function formatDate(date) {
 }
 
 function ProfilePage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(createInitialProfile);
   const [passwordForm, setPasswordForm] = useState(initialPasswordForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
   const [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" });
+  const [accountMessage, setAccountMessage] = useState({ type: "", text: "" });
+
+  function redirectToLogin(message) {
+    window.setTimeout(() => {
+      navigate("/login", {
+        replace: true,
+        state: { type: "success", message },
+      });
+    }, 900);
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -107,9 +121,9 @@ function ProfilePage() {
       const result = await updateProfile({
         display_name: profile.display_name.trim(),
       });
-      const updatedUser = result.user ?? result;
-      setProfile((currentProfile) => ({ ...currentProfile, ...updatedUser }));
-      setProfileMessage({ type: "success", text: "Display name updated." });
+      const message = result.message ?? "Display name updated. Please log in again.";
+      setProfileMessage({ type: "success", text: message });
+      redirectToLogin(message);
     } catch (error) {
       setProfileMessage({
         type: "error",
@@ -137,12 +151,14 @@ function ProfilePage() {
     setIsSavingPassword(true);
 
     try {
-      await changePassword({
+      const result = await changePassword({
         current_password: passwordForm.current_password,
         new_password: passwordForm.new_password,
       });
+      const message = result.message ?? "Password updated. Please log in again.";
       setPasswordForm(initialPasswordForm);
-      setPasswordMessage({ type: "success", text: "Password updated." });
+      setPasswordMessage({ type: "success", text: message });
+      redirectToLogin(message);
     } catch (error) {
       setPasswordMessage({
         type: "error",
@@ -150,6 +166,29 @@ function ProfilePage() {
       });
     } finally {
       setIsSavingPassword(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!window.confirm("Delete this account? This action cannot be undone.")) {
+      return;
+    }
+
+    setAccountMessage({ type: "", text: "" });
+    setIsDeletingAccount(true);
+
+    try {
+      const result = await deleteAccount();
+      const message = result.message ?? "Account deleted.";
+      setAccountMessage({ type: "success", text: message });
+      redirectToLogin(message);
+    } catch (error) {
+      setAccountMessage({
+        type: "error",
+        text: error.message || "Unable to delete your account.",
+      });
+    } finally {
+      setIsDeletingAccount(false);
     }
   }
 
@@ -241,7 +280,7 @@ function ProfilePage() {
                   <button
                     className="profile-primary-button"
                     type="submit"
-                    disabled={isLoading || isSavingProfile}
+                    disabled={isLoading || isSavingProfile || isDeletingAccount}
                   >
                     {isSavingProfile ? "Saving..." : "Save display name"}
                   </button>
@@ -311,7 +350,7 @@ function ProfilePage() {
                   <button
                     className="profile-primary-button"
                     type="submit"
-                    disabled={isSavingPassword}
+                    disabled={isSavingPassword || isDeletingAccount}
                   >
                     {isSavingPassword ? "Updating..." : "Update password"}
                   </button>
@@ -340,6 +379,27 @@ function ProfilePage() {
                 <dd>{formatDate(profile.created_at)}</dd>
               </div>
             </dl>
+
+            <div className="profile-danger-zone">
+              <h3>Delete account</h3>
+              <p>This deactivates your account and signs you out.</p>
+              {accountMessage.text && (
+                <p
+                  className={`profile-status profile-status-${accountMessage.type}`}
+                  role={accountMessage.type === "error" ? "alert" : "status"}
+                >
+                  {accountMessage.text}
+                </p>
+              )}
+              <button
+                className="profile-danger-button"
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={isLoading || isDeletingAccount}
+              >
+                {isDeletingAccount ? "Deleting..." : "Delete account"}
+              </button>
+            </div>
           </aside>
         </div>
       </main>

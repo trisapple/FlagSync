@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { login } from "../../services/authService";
-import { getDashboardPath } from "../../utils/roleRoutes";
-import { saveSessionUser } from "../../utils/authSession";
 import PublicLayout from "../../components/public/PublicLayout";
+import { login } from "../../services/authService";
+import { saveSessionUser } from "../../utils/authSession";
+import { getDashboardPath } from "../../utils/roleRoutes";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -12,7 +12,14 @@ function LoginPage() {
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
+  const [feedback, setFeedback] = useState(() =>
+    location.state?.message
+      ? {
+          type: location.state.type ?? "success",
+          text: location.state.message,
+        }
+      : { type: "", text: "" },
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange(event) {
@@ -25,16 +32,13 @@ function LoginPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
+    setFeedback({ type: "", text: "" });
     setIsSubmitting(true);
 
     try {
       const result = await login(credentials);
-      const role =
-        result.user?.role ??
-        result.user?.role_name ??
-        result.role ??
-        result.role_name;
+      const user = result.user ?? result;
+      const role = user.role ?? user.role_name ?? result.role ?? result.role_name;
       const dashboardPath = getDashboardPath(role);
 
       if (!dashboardPath) {
@@ -42,14 +46,17 @@ function LoginPage() {
       }
 
       saveSessionUser({
-        user_id: result.user?.user_id ?? result.user_id ?? "",
+        user_id: user.user_id ?? result.user_id ?? "",
         role,
-        email: result.user?.email ?? result.email ?? "",
-        display_name: result.user?.display_name ?? result.display_name ?? "",
+        email: user.email ?? result.email ?? "",
+        display_name: user.display_name ?? result.display_name ?? "",
       });
       navigate(location.state?.returnTo ?? dashboardPath, { replace: true });
     } catch (loginError) {
-      setError(loginError.message || "Unable to log in. Please try again.");
+      setFeedback({
+        type: "error",
+        text: loginError.message || "Unable to log in. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -70,13 +77,13 @@ function LoginPage() {
                 </p>
                 <ul className="login-context-list">
                   <li>
-                    <span aria-hidden="true">✓</span> One place for every event
+                    <span aria-hidden="true">OK</span> One place for every event
                   </li>
                   <li>
-                    <span aria-hidden="true">✓</span> Role-specific dashboards
+                    <span aria-hidden="true">OK</span> Role-specific dashboards
                   </li>
                   <li>
-                    <span aria-hidden="true">✓</span> Clear team and event updates
+                    <span aria-hidden="true">OK</span> Clear team and event updates
                   </li>
                 </ul>
               </div>
@@ -121,9 +128,12 @@ function LoginPage() {
                   />
                 </div>
 
-                {error && (
-                  <p className="login-error" role="alert">
-                    {error}
+                {feedback.text && (
+                  <p
+                    className={`login-status login-status-${feedback.type}`}
+                    role={feedback.type === "error" ? "alert" : "status"}
+                  >
+                    {feedback.text}
                   </p>
                 )}
 

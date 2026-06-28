@@ -1,11 +1,16 @@
-import apiClient from "../api/axiosClient";
+import {
+  deleteCurrentUser,
+  updateCurrentUser,
+} from "./authService";
 
 export async function updateProfile(profileDetails) {
-  const response = await apiClient.patch("/users/me", profileDetails);
-  return response.data;
+  return updateCurrentUser(profileDetails);
 }
 
 export async function changePassword(passwordDetails) {
-  const response = await apiClient.patch("/users/me/password", passwordDetails);
-  return response.data;
+  return updateCurrentUser(passwordDetails);
+}
+
+export async function deleteAccount() {
+  return deleteCurrentUser();
 }

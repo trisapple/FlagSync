@@ -581,14 +581,25 @@
   box-shadow: 0 0 0 4px rgb(79 70 229 / 12%);
 }
 
-.login-error {
+.login-error,
+.login-status {
   margin: 0;
   padding: 11px 13px;
-  border: 1px solid #fecaca;
   border-radius: 9px;
+  font-size: 0.86rem;
+}
+
+.login-error,
+.login-status-error {
+  border: 1px solid #fecaca;
   color: #b91c1c;
   background: #fef2f2;
-  font-size: 0.86rem;
+}
+
+.login-status-success {
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  background: #ecfdf5;
 }
 
 .login-submit {
@@ -648,6 +659,17 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.register-challenge-prompt {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #334155;
+  background: #f8fafc;
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 860px) {

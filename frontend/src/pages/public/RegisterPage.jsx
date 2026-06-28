@@ -1,20 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PublicLayout from "../../components/public/PublicLayout";
-import { register } from "../../services/authService";
+import {
+  getRegistrationChallenge,
+  register,
+} from "../../services/authService";
 
 const initialFormData = {
   display_name: "",
   email: "",
   password: "",
   confirmPassword: "",
+  challenge_answer: "",
 };
 
 function RegisterPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(initialFormData);
-  const [error, setError] = useState("");
+  const [challenge, setChallenge] = useState(null);
+  const [feedback, setFeedback] = useState({ type: "", text: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function loadChallenge() {
+    const nextChallenge = await getRegistrationChallenge();
+    setChallenge(nextChallenge);
+  }
+
+  useEffect(() => {
+    let ignore = false;
+
+    getRegistrationChallenge()
+      .then((nextChallenge) => {
+        if (!ignore) {
+          setChallenge(nextChallenge);
+        }
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setFeedback({
+            type: "error",
+            text:
+              error.message ||
+              "Unable to load the registration challenge. Please try again.",
+          });
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -26,27 +61,47 @@ function RegisterPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
+    setFeedback({ type: "", text: "" });
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      setFeedback({ type: "error", text: "Passwords do not match." });
+      return;
+    }
+
+    if (!challenge) {
+      setFeedback({
+        type: "error",
+        text: "The registration challenge is still loading. Please try again.",
+      });
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await register({
+      const result = await register({
         display_name: formData.display_name.trim(),
         email: formData.email.trim(),
         password: formData.password,
+        challenge_id: challenge.challenge_id,
+        challenge_answer: formData.challenge_answer.trim(),
       });
-      navigate("/login", { replace: true });
+      setFormData(initialFormData);
+      navigate("/login", {
+        replace: true,
+        state: {
+          type: "success",
+          message: result.message ?? "Registration successful. Please sign in.",
+        },
+      });
     } catch (registrationError) {
-      setError(
-        registrationError.message ||
+      setFeedback({
+        type: "error",
+        text:
+          registrationError.message ||
           "Unable to create your account. Please try again.",
-      );
+      });
+      loadChallenge().catch(() => undefined);
     } finally {
       setIsSubmitting(false);
     }
@@ -67,18 +122,18 @@ function RegisterPage() {
                 </p>
                 <ul className="login-context-list">
                   <li>
-                    <span aria-hidden="true">✓</span> Discover upcoming events
+                    <span aria-hidden="true">OK</span> Discover upcoming events
                   </li>
                   <li>
-                    <span aria-hidden="true">✓</span> Keep your team organised
+                    <span aria-hidden="true">OK</span> Keep your team organised
                   </li>
                   <li>
-                    <span aria-hidden="true">✓</span> Track everything in one view
+                    <span aria-hidden="true">OK</span> Track everything in one view
                   </li>
                 </ul>
               </div>
               <p className="login-context-note">
-                Public registrations create a standard user account.
+                Public registrations create a standard participant account.
               </p>
             </div>
 
@@ -152,16 +207,37 @@ function RegisterPage() {
                   </div>
                 </div>
 
-                {error && (
-                  <p className="login-error" role="alert">
-                    {error}
+                <div className="login-field">
+                  <label htmlFor="challenge_answer">Verification challenge</label>
+                  <span className="register-challenge-prompt">
+                    {challenge?.prompt ?? "Loading challenge..."}
+                  </span>
+                  <input
+                    id="challenge_answer"
+                    name="challenge_answer"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="Enter the answer"
+                    value={formData.challenge_answer}
+                    onChange={handleChange}
+                    disabled={!challenge || isSubmitting}
+                    required
+                  />
+                </div>
+
+                {feedback.text && (
+                  <p
+                    className={`login-status login-status-${feedback.type}`}
+                    role={feedback.type === "error" ? "alert" : "status"}
+                  >
+                    {feedback.text}
                   </p>
                 )}
 
                 <button
                   className="public-button public-button-primary login-submit"
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !challenge}
                 >
                   {isSubmitting ? "Creating account..." : "Create account"}
                 </button>

@@ -17,6 +17,9 @@ htmlcov/
 .env.local
 .env.*.local
 
+# Local databases
+backend/*.db
+
 # Logs
 *.log
 

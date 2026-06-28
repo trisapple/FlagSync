@@ -9,6 +9,7 @@ const ROLE_ALIASES = Object.freeze({
   administrator: "administrator",
   organizer: "organiser",
   organiser: "organiser",
+  participant: "user",
   user: "user",
 });
 
