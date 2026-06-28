@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { login } from "../../services/auth_service";
 
@@ -30,7 +30,7 @@ function LoginPage() {
       const result = await login(formData);
       setMessageType("success");
       setMessage(result.message ?? "Login successful");
-      navigate("/");
+      navigate("/profile");
     } catch (error) {
       setMessageType("error");
       setMessage(error.message);
@@ -54,6 +54,14 @@ function LoginPage() {
             <span className="pill">JWT session cookie</span>
             <span className="pill">Brute-force lockout</span>
             <span className="pill">Redis-backed tracking</span>
+          </div>
+          <div className="inline-actions">
+            <Link className="button button-secondary" to="/register">
+              Register
+            </Link>
+            <Link className="button button-secondary" to="/">
+              Home
+            </Link>
           </div>
         </article>
 

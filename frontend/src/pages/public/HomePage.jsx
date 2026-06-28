@@ -11,9 +11,17 @@ function HomePage() {
             Navigate the platform with authenticated sessions, role-aware access,
             and security controls built for challenge environments.
           </p>
-          <Link className="button button-primary" to="/login">
-            Go to Login
-          </Link>
+          <div className="inline-actions">
+            <Link className="button button-primary" to="/login">
+              Login
+            </Link>
+            <Link className="button button-secondary" to="/register">
+              Register
+            </Link>
+            <Link className="button button-secondary" to="/profile">
+              Profile
+            </Link>
+          </div>
         </article>
 
         <article className="surface auth-card">

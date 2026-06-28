@@ -5,6 +5,7 @@ from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 load_dotenv()
 
@@ -32,6 +33,8 @@ engine_kwargs = {
 
 if database_url.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
+    if database_url == "sqlite:///:memory:":
+        engine_kwargs["poolclass"] = StaticPool
 
 
 class Base(DeclarativeBase):

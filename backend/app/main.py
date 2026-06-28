@@ -8,12 +8,18 @@ from sqlalchemy.orm import Session
 
 from app.database import Base, SessionLocal, engine, get_db
 from app.models.role import Role
-from app.models.user import User
 from app.repositories.role_repository import get_role_by_name
 from app.repositories.user_repository import create_user, get_user_by_email
+from app.routers.audit_logs import router as audit_logs_router
 from app.routers.auth_router import router as auth_router
 from app.routers.roles import router as roles_router
-from app.services.auth_service import get_password_hash, normalize_email
+from app.services.auth_service import (
+    apply_no_store_headers,
+    apply_security_headers,
+    get_password_hash,
+    normalize_email,
+    validate_password_policy,
+)
 
 app = FastAPI(
     title="FlagSync API",
@@ -33,16 +39,26 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+
+@app.middleware("http")
+async def security_headers_middleware(request, call_next):
+    response = await call_next(request)
+    apply_security_headers(response)
+
+    if request.url.path.startswith(("/api/auth", "/api/audit-logs")):
+        apply_no_store_headers(response)
+
+    return response
+
+
 app.include_router(auth_router)
 app.include_router(roles_router)
+app.include_router(audit_logs_router)
 
 
 @app.on_event("startup")
 def startup_database() -> None:
-    Base.metadata.create_all(
-        bind=engine,
-        tables=[Role.__table__, User.__table__],
-    )
+    Base.metadata.create_all(bind=engine)
     _seed_reference_data()
 
 
@@ -64,6 +80,7 @@ def _seed_reference_data() -> None:
         if not admin_email or not admin_password:
             return
 
+        validate_password_policy(admin_password)
         normalized_email = normalize_email(admin_email)
         if get_user_by_email(db, normalized_email) is not None:
             return
