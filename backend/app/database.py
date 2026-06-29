@@ -21,9 +21,7 @@ if database_url is None:
     if all([db_user, db_password, db_host]):
         # Prevent special password characters such as @ or # from breaking the URL.
         encoded_password = quote_plus(db_password)
-        database_url = (
-            f"postgresql+psycopg2://{db_user}:{encoded_password}@{db_host}:{db_port}/{db_name}"
-        )
+        database_url = f"postgresql+psycopg2://{db_user}:{encoded_password}@{db_host}:{db_port}/{db_name}"
     else:
         database_url = os.getenv("SQLITE_DATABASE_URL", "sqlite:///./flagsync.db")
 

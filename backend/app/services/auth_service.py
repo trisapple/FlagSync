@@ -395,9 +395,13 @@ def is_password_breached(password: str) -> bool:
     if not ENABLE_HIBP_PASSWORD_CHECK:
         return False
 
-    password_hash = hashlib.sha1(  # nosec B324 - required by HIBP k-anonymity API
-        password.encode("utf-8"),
-    ).hexdigest().upper()
+    password_hash = (
+        hashlib.sha1(  # nosec B324 - required by HIBP k-anonymity API
+            password.encode("utf-8"),
+        )
+        .hexdigest()
+        .upper()
+    )
     prefix = password_hash[:5]
     suffix = password_hash[5:]
     response = requests.get(

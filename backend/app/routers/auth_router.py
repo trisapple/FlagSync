@@ -183,7 +183,9 @@ def register(
 
     return MessageResponse(
         message=message,
-        verification_token=verification_token if EXPOSE_DEV_VERIFICATION_TOKEN else None,
+        verification_token=verification_token
+        if EXPOSE_DEV_VERIFICATION_TOKEN
+        else None,
     )
 
 
