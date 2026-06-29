@@ -151,4 +151,4 @@ def test_admin_can_read_audit_logs(client, admin_user, monkeypatch):
 
     response = client.get("/api/audit-logs")
     assert response.status_code == 200
-    assert any(log["action_type"] == "login_success" for log in response.json())
+    assert any(log["action_type"] == "login_otp_verified" for log in response.json())
