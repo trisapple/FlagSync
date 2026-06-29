@@ -6,14 +6,14 @@ import { verifyEmail } from "../../services/authService";
 function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
-  const [status, setStatus] = useState("verifying");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [status, setStatus] = useState(token ? "verifying" : "error");
+  const [errorMessage, setErrorMessage] = useState(
+    token ? "" : "This verification link is missing a token.",
+  );
   const hasRequestedRef = useRef(false);
 
   useEffect(() => {
     if (!token) {
-      setStatus("error");
-      setErrorMessage("This verification link is missing a token.");
       return;
     }
 
