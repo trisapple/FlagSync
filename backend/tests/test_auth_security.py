@@ -11,7 +11,7 @@ def test_register_login_profile_update_and_logout_revocation(client):
         json={"email": "user@flagsync.test", "password": "ValidPass123!"},
     )
     assert login_response.status_code == 200
-    assert login_response.json()["user"]["role_name"] == "participant"
+    assert login_response.json()["user"]["role_name"] == "user"
     assert COOKIE_NAME in client.cookies
     assert "httponly" in login_response.headers["set-cookie"].lower()
     assert "samesite=strict" in login_response.headers["set-cookie"].lower()
@@ -115,4 +115,4 @@ def test_admin_can_read_audit_logs(client, admin_user):
 
     response = client.get("/api/audit-logs")
     assert response.status_code == 200
-    assert any(log["action"] == "login_success" for log in response.json())
+    assert any(log["action_type"] == "login_success" for log in response.json())

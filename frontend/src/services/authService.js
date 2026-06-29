@@ -8,6 +8,14 @@ export async function login(credentials) {
   return response.data;
 }
 
+export async function verifyLoginOtp({ loginIntentId, otp }) {
+  const response = await apiClient.post(`${AUTH_BASE_PATH}/login/verify-otp`, {
+    login_intent_id: loginIntentId,
+    otp,
+  });
+  return response.data;
+}
+
 export async function getRegistrationChallenge() {
   const response = await apiClient.get(`${AUTH_BASE_PATH}/register/challenge`);
   return response.data;
@@ -43,5 +51,19 @@ export async function updateCurrentUser(profileChanges) {
 export async function deleteCurrentUser() {
   const response = await apiClient.delete(`${AUTH_BASE_PATH}/me`);
   clearSessionUser();
+  return response.data;
+}
+
+export async function verifyEmail(token) {
+  const response = await apiClient.post(`${AUTH_BASE_PATH}/verify-email`, {
+    token,
+  });
+  return response.data;
+}
+
+export async function resendVerification(email) {
+  const response = await apiClient.post(`${AUTH_BASE_PATH}/resend-verification`, {
+    email,
+  });
   return response.data;
 }

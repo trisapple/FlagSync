@@ -63,7 +63,7 @@ def startup_database() -> None:
 
 
 def _seed_reference_data() -> None:
-    default_roles = ["administrator", "organiser", "participant"]
+    default_roles = ["administrator", "organiser", "user"]
 
     with SessionLocal() as db:
         for role_name in default_roles:
