@@ -5,7 +5,11 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["SQLITE_DATABASE_URL"] = "sqlite:///:memory:"
+os.environ.pop("DB_USER", None)
+os.environ.pop("DB_PASSWORD", None)
+os.environ.pop("DB_HOST", None)
 os.environ["SECRET_KEY"] = "test-secret-key-that-is-at-least-thirty-two-bytes"
 os.environ["AUTH_RATE_LIMIT_PER_MINUTE"] = "100"
 os.environ["EMAIL_VERIFICATION_REQUIRED"] = "false"

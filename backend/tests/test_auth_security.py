@@ -1,14 +1,44 @@
+from app.routers import auth_router
+from app.services import auth_service
 from app.services.auth_service import COOKIE_NAME
 
 from conftest import register_account, solve_registration_challenge
 
 
-def test_register_login_profile_update_and_logout_revocation(client):
-    register_account(client)
+def complete_login(client, monkeypatch, *, email: str, password: str):
+    captured = {}
 
+    def capture_login_otp(user_id):
+        intent_id, otp = auth_service.create_login_otp(user_id)
+        captured["otp"] = otp
+        return intent_id, otp
+
+    monkeypatch.setattr(auth_router, "create_login_otp", capture_login_otp)
     login_response = client.post(
         "/api/auth/login",
-        json={"email": "user@flagsync.test", "password": "ValidPass123!"},
+        json={"email": email, "password": password},
+    )
+    assert login_response.status_code == 200
+    login_intent_id = login_response.json()["login_intent_id"]
+
+    otp_response = client.post(
+        "/api/auth/login/verify-otp",
+        json={
+            "login_intent_id": login_intent_id,
+            "otp": captured["otp"],
+        },
+    )
+    return otp_response
+
+
+def test_register_login_profile_update_and_logout_revocation(client, monkeypatch):
+    register_account(client)
+
+    login_response = complete_login(
+        client,
+        monkeypatch,
+        email="user@flagsync.test",
+        password="ValidPass123!",
     )
     assert login_response.status_code == 200
     assert login_response.json()["user"]["role_name"] == "user"
@@ -27,9 +57,11 @@ def test_register_login_profile_update_and_logout_revocation(client):
     assert update_response.status_code == 200
     assert client.get("/api/auth/me").status_code == 401
 
-    login_again_response = client.post(
-        "/api/auth/login",
-        json={"email": "user@flagsync.test", "password": "ValidPass123!"},
+    login_again_response = complete_login(
+        client,
+        monkeypatch,
+        email="user@flagsync.test",
+        password="ValidPass123!",
     )
     assert login_again_response.status_code == 200
 
@@ -94,11 +126,13 @@ def test_sensitive_auth_responses_include_security_headers(client):
     assert response.headers["cache-control"] == "no-store"
 
 
-def test_participant_cannot_read_roles(client):
+def test_participant_cannot_read_roles(client, monkeypatch):
     register_account(client)
-    login_response = client.post(
-        "/api/auth/login",
-        json={"email": "user@flagsync.test", "password": "ValidPass123!"},
+    login_response = complete_login(
+        client,
+        monkeypatch,
+        email="user@flagsync.test",
+        password="ValidPass123!",
     )
     assert login_response.status_code == 200
 
@@ -106,10 +140,12 @@ def test_participant_cannot_read_roles(client):
     assert response.status_code == 403
 
 
-def test_admin_can_read_audit_logs(client, admin_user):
-    login_response = client.post(
-        "/api/auth/login",
-        json={"email": admin_user["email"], "password": "AdminPass123!"},
+def test_admin_can_read_audit_logs(client, admin_user, monkeypatch):
+    login_response = complete_login(
+        client,
+        monkeypatch,
+        email=admin_user["email"],
+        password="AdminPass123!",
     )
     assert login_response.status_code == 200
 
