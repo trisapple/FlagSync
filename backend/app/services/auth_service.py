@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import base64
+import codecs
 import hashlib
 import json
 import os
 import secrets
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -39,6 +41,8 @@ AUTH_RATE_LIMIT_PER_MINUTE = int(os.getenv("AUTH_RATE_LIMIT_PER_MINUTE", "10"))
 REGISTRATION_CHALLENGE_TTL_SECONDS = int(
     os.getenv("REGISTRATION_CHALLENGE_TTL_SECONDS", "600"),
 )
+LOGIN_OTP_TTL_SECONDS = int(os.getenv("LOGIN_OTP_TTL_SECONDS", "300"))
+MAX_LOGIN_OTP_ATTEMPTS = int(os.getenv("MAX_LOGIN_OTP_ATTEMPTS", "3"))
 EMAIL_VERIFICATION_REQUIRED = _parse_bool(
     os.getenv("EMAIL_VERIFICATION_REQUIRED"),
     default=False,
@@ -99,6 +103,13 @@ class AuthContext:
     token_data: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class LoginOtpResult:
+    user_id: uuid.UUID | None
+    attempts_remaining: int
+    reason: str  # "ok", "wrong", "exhausted", "expired"
+
+
 def _build_redis_client() -> redis.Redis | None:
     redis_url = os.getenv("REDIS_URL")
     if redis_url:
@@ -122,6 +133,7 @@ _fallback_rate_limits: dict[str, tuple[int, float]] = {}
 _fallback_challenges: dict[str, tuple[str, float]] = {}
 _fallback_revoked_tokens: dict[str, tuple[str, float]] = {}
 _fallback_email_verifications: dict[str, tuple[str, float]] = {}
+_fallback_login_otps: dict[str, tuple[str, float]] = {}
 
 
 def normalize_email(email: str) -> str:
@@ -220,6 +232,45 @@ def _pop_temporary_value(
     return value
 
 
+def _peek_temporary_value(
+    namespace: str,
+    fallback_store: dict[str, tuple[str, float]],
+    key: str,
+) -> str | None:
+    redis_key = f"{namespace}:{key}"
+    redis_value = _redis_get(redis_key)
+    if redis_value is not None:
+        return redis_value
+
+    return _fallback_get(fallback_store, key)
+
+
+def _replace_temporary_value(
+    namespace: str,
+    fallback_store: dict[str, tuple[str, float]],
+    key: str,
+    value: str,
+) -> bool:
+    redis_key = f"{namespace}:{key}"
+    if redis_client is not None:
+        try:
+            ttl = redis_client.ttl(redis_key)
+            if ttl > 0:
+                redis_client.setex(redis_key, ttl, value)
+                return True
+        except redis.RedisError:
+            pass
+
+    if key in fallback_store:
+        _, expires_at = fallback_store[key]
+        if time.monotonic() < expires_at:
+            fallback_store[key] = (value, expires_at)
+            return True
+        fallback_store.pop(key, None)
+
+    return False
+
+
 def check_auth_rate_limit(client_ip: str) -> bool:
     window_seconds = 60
     bucket = int(time.time() // window_seconds)
@@ -244,10 +295,51 @@ def check_auth_rate_limit(client_ip: str) -> bool:
     return attempts <= AUTH_RATE_LIMIT_PER_MINUTE
 
 
+PUZZLE_TYPES = ("base64", "hex", "rot13", "reverse", "binary")
+
+
+def _build_puzzle(flag: str, puzzle_type: str) -> tuple[str, str]:
+    if puzzle_type == "base64":
+        encoded = base64.b64encode(flag.encode("utf-8")).decode("ascii")
+        return (
+            f"Decode this Base64 value: {encoded}",
+            "Hint: Base64 turns 3 bytes into 4 ASCII characters. Try CyberChef's "
+            "'From Base64' or Python's base64 module.",
+        )
+    if puzzle_type == "hex":
+        encoded = flag.encode("utf-8").hex()
+        return (
+            f"Decode this hex string: {encoded}",
+            "Hint: every two hex characters are one byte. Try `bytes.fromhex(...)` "
+            "in Python or CyberChef's 'From Hex'.",
+        )
+    if puzzle_type == "rot13":
+        encoded = codecs.encode(flag, "rot_13")
+        return (
+            f"Apply ROT13 to recover the flag: {encoded}",
+            "Hint: ROT13 shifts each letter by 13 places. Applying it a second time "
+            "returns the original text.",
+        )
+    if puzzle_type == "reverse":
+        encoded = flag[::-1]
+        return (
+            f"Reverse this string to recover the flag: {encoded}",
+            "Hint: read the characters from right to left.",
+        )
+    if puzzle_type == "binary":
+        encoded = " ".join(f"{ord(character):08b}" for character in flag)
+        return (
+            f"Decode this binary (8-bit ASCII): {encoded}",
+            "Hint: each 8-bit group represents one ASCII character.",
+        )
+    raise ValueError(f"Unknown puzzle type: {puzzle_type}")
+
+
 def create_registration_challenge() -> dict[str, str | int]:
     answer = f"flag-{secrets.token_hex(3)}"
-    encoded_answer = base64.b64encode(answer.encode("utf-8")).decode("ascii")
     challenge_id = secrets.token_urlsafe(32)
+    puzzle_type = secrets.choice(PUZZLE_TYPES)
+    prompt, hint = _build_puzzle(answer, puzzle_type)
 
     _store_temporary_value(
         "registration_challenge",
@@ -259,7 +351,9 @@ def create_registration_challenge() -> dict[str, str | int]:
 
     return {
         "challenge_id": challenge_id,
-        "prompt": f"Decode this base64 value and enter the decoded text: {encoded_answer}",
+        "puzzle_type": puzzle_type,
+        "prompt": prompt,
+        "hint": hint,
         "expires_in_seconds": REGISTRATION_CHALLENGE_TTL_SECONDS,
     }
 
@@ -393,6 +487,17 @@ def revoke_token(token_data: dict[str, Any]) -> None:
     )
 
 
+def try_revoke_existing_session(request: Request) -> None:
+    token = get_token_from_request(request)
+    if not token:
+        return
+    try:
+        token_data = decode_access_token(token)
+    except (JWTError, KeyError, ValueError, TypeError):
+        return
+    revoke_token(token_data)
+
+
 def build_lockout_key(
     client_ip: str,
     email: str,
@@ -447,7 +552,7 @@ def clear_failed_logins(lockout_key: str) -> None:
     _fallback_lockouts.pop(lockout_key, None)
 
 
-def create_email_verification_token(user_id: int) -> str:
+def create_email_verification_token(user_id: uuid.UUID) -> str:
     token = secrets.token_urlsafe(32)
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     _store_temporary_value(
@@ -460,7 +565,74 @@ def create_email_verification_token(user_id: int) -> str:
     return token
 
 
-def consume_email_verification_token(token: str) -> int | None:
+def create_login_otp(user_id: uuid.UUID) -> tuple[str, str]:
+    intent_id = secrets.token_urlsafe(32)
+    otp = "".join(secrets.choice("0123456789") for _ in range(6))
+    otp_hash = hashlib.sha256(otp.encode("utf-8")).hexdigest()
+    payload = json.dumps(
+        {"user_id": str(user_id), "otp_hash": otp_hash},
+        separators=(",", ":"),
+    )
+    _store_temporary_value(
+        "login_otp",
+        _fallback_login_otps,
+        intent_id,
+        payload,
+        LOGIN_OTP_TTL_SECONDS,
+    )
+    return intent_id, otp
+
+
+def consume_login_otp(intent_id: str, otp: str) -> LoginOtpResult:
+    raw = _peek_temporary_value(
+        "login_otp",
+        _fallback_login_otps,
+        intent_id,
+    )
+    if raw is None:
+        return LoginOtpResult(user_id=None, attempts_remaining=0, reason="expired")
+
+    try:
+        data = json.loads(raw)
+        stored_hash = data["otp_hash"]
+        user_id = uuid.UUID(data["user_id"])
+        attempts = int(data.get("attempts", 0))
+    except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+        _pop_temporary_value("login_otp", _fallback_login_otps, intent_id)
+        return LoginOtpResult(user_id=None, attempts_remaining=0, reason="expired")
+
+    submitted_hash = hashlib.sha256(otp.encode("utf-8")).hexdigest()
+    if secrets.compare_digest(stored_hash, submitted_hash):
+        _pop_temporary_value("login_otp", _fallback_login_otps, intent_id)
+        return LoginOtpResult(user_id=user_id, attempts_remaining=0, reason="ok")
+
+    attempts += 1
+    if attempts >= MAX_LOGIN_OTP_ATTEMPTS:
+        _pop_temporary_value("login_otp", _fallback_login_otps, intent_id)
+        return LoginOtpResult(user_id=None, attempts_remaining=0, reason="exhausted")
+
+    new_payload = json.dumps(
+        {
+            "user_id": data["user_id"],
+            "otp_hash": stored_hash,
+            "attempts": attempts,
+        },
+        separators=(",", ":"),
+    )
+    _replace_temporary_value(
+        "login_otp",
+        _fallback_login_otps,
+        intent_id,
+        new_payload,
+    )
+    return LoginOtpResult(
+        user_id=None,
+        attempts_remaining=MAX_LOGIN_OTP_ATTEMPTS - attempts,
+        reason="wrong",
+    )
+
+
+def consume_email_verification_token(token: str) -> uuid.UUID | None:
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     user_id = _pop_temporary_value(
         "email_verification",
@@ -470,7 +642,10 @@ def consume_email_verification_token(token: str) -> int | None:
     if user_id is None:
         return None
 
-    return int(user_id)
+    try:
+        return uuid.UUID(user_id)
+    except ValueError:
+        return None
 
 
 def set_auth_cookie(
@@ -522,7 +697,7 @@ def get_current_auth_context(
 
     try:
         token_data = decode_access_token(token)
-        user_id = int(token_data["sub"])
+        user_id = uuid.UUID(token_data["sub"])
         jti = str(token_data["jti"])
     except (JWTError, KeyError, ValueError, TypeError):
         raise HTTPException(
@@ -537,7 +712,7 @@ def get_current_auth_context(
         )
 
     user = get_user_by_id(db, user_id)
-    if user is None or not user.is_active:
+    if user is None or user.account_status != "active":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
@@ -583,7 +758,10 @@ def authenticate_user(
     password: str,
 ) -> User | None:
     user = get_user_by_email(db, normalize_email(email))
-    if user is None or not user.is_active:
+    if user is None or user.account_status != "active":
+        return None
+
+    if EMAIL_VERIFICATION_REQUIRED and not user.email_verified:
         return None
 
     if not verify_password(password, user.password_hash):
@@ -592,31 +770,27 @@ def authenticate_user(
     return user
 
 
-def audit_details(details: dict[str, str | int | bool] | None = None) -> str | None:
-    if not details:
-        return None
-
-    return json.dumps(details, separators=(",", ":"), sort_keys=True)
-
-
 def record_audit_event(
     db: Session,
     *,
-    action: str,
+    action_type: str,
+    result: str,
     request: Request,
-    actor_user_id: int | None = None,
+    actor_user_id: uuid.UUID | None = None,
     resource_type: str | None = None,
     resource_id: str | None = None,
-    details: dict[str, str | int | bool] | None = None,
+    details: dict[str, Any] | None = None,
 ) -> None:
+    payload = dict(details or {})
+    payload["ip_address"] = get_client_ip(request)
     create_audit_log(
         db,
-        action=action,
+        action_type=action_type,
+        result=result,
         actor_user_id=actor_user_id,
         resource_type=resource_type,
         resource_id=resource_id,
-        ip_address=get_client_ip(request),
-        details_json=audit_details(details),
+        details=payload,
     )
 
 
@@ -644,3 +818,4 @@ def clear_ephemeral_security_state() -> None:
     _fallback_challenges.clear()
     _fallback_revoked_tokens.clear()
     _fallback_email_verifications.clear()
+    _fallback_login_otps.clear()
