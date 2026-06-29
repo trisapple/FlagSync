@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -75,6 +75,70 @@ def deactivate_user(
     user.display_name = "Deleted user"
     user.password_hash = replacement_password_hash
     user.is_active = False
+    db.flush()
+    db.refresh(user)
+    return user
+
+
+def get_users_paginated(
+    db: Session,
+    *,
+    search: str | None = None,
+    role: str | None = None,
+    is_active: bool | None = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> tuple[list[User], int]:
+    from app.models.role import Role
+
+    statement = select(User).join(Role, User.role_id == Role.role_id)
+
+    if search:
+        pattern = f"%{search}%"
+        statement = statement.where(
+            or_(
+                User.display_name.ilike(pattern),
+                User.email.ilike(pattern),
+            )
+        )
+
+    if role:
+        statement = statement.where(Role.role_name == role)
+
+    if is_active is not None:
+        statement = statement.where(User.is_active == is_active)
+
+    count_statement = select(func.count()).select_from(statement.subquery())
+    total = db.scalar(count_statement) or 0
+
+    offset = (page - 1) * page_size
+    statement = statement.order_by(User.user_id.desc()).offset(offset).limit(page_size)
+    users = list(db.scalars(statement).all())
+
+    return users, total
+
+
+def count_active_administrators(db: Session) -> int:
+    from app.models.role import Role
+
+    statement = select(func.count()).select_from(
+        select(User)
+        .join(Role, User.role_id == Role.role_id)
+        .where(Role.role_name == "administrator", User.is_active == True)
+        .subquery()
+    )
+    return db.scalar(statement) or 0
+
+
+def update_user_is_active(db: Session, user: User, is_active: bool) -> User:
+    user.is_active = is_active
+    db.flush()
+    db.refresh(user)
+    return user
+
+
+def update_user_role(db: Session, user: User, role_id: int) -> User:
+    user.role_id = role_id
     db.flush()
     db.refresh(user)
     return user

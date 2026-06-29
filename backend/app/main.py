@@ -10,6 +10,7 @@ from app.database import Base, SessionLocal, engine, get_db
 from app.models.role import Role
 from app.repositories.role_repository import get_role_by_name
 from app.repositories.user_repository import create_user, get_user_by_email
+from app.routers.admin import router as admin_router
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.auth_router import router as auth_router
 from app.routers.roles import router as roles_router
@@ -45,7 +46,7 @@ async def security_headers_middleware(request, call_next):
     response = await call_next(request)
     apply_security_headers(response)
 
-    if request.url.path.startswith(("/api/auth", "/api/audit-logs")):
+    if request.url.path.startswith(("/api/auth", "/api/audit-logs", "/api/admin")):
         apply_no_store_headers(response)
 
     return response
@@ -54,6 +55,7 @@ async def security_headers_middleware(request, call_next):
 app.include_router(auth_router)
 app.include_router(roles_router)
 app.include_router(audit_logs_router)
+app.include_router(admin_router)
 
 
 @app.on_event("startup")
