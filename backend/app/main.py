@@ -26,10 +26,12 @@ from app.services.auth_service import (
     validate_password_policy,
 )
 
+
 @asynccontextmanager
 async def lifespan(app):
     startup_database()
     yield
+
 
 app = FastAPI(
     title="FlagSync API",
