@@ -90,7 +90,9 @@ def update_user_status(
         )
 
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     if body.account_status == "suspended":
         if user.user_id == admin.user_id:
@@ -159,7 +161,9 @@ def delete_user(
         )
 
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     if user.user_id == admin.user_id:
         raise HTTPException(
@@ -228,7 +232,9 @@ def update_user_role_endpoint(
         )
 
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     if user.account_status != "active":
         raise HTTPException(

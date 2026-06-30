@@ -60,6 +60,10 @@ SECRET_KEY=
 REDIS_URL=
 CTF_BOOTSTRAP_ADMIN_EMAIL=
 CTF_BOOTSTRAP_ADMIN_PASSWORD=
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USERNAME=
+SMTP_PASSWORD=
 ```
 
 If you skip the PostgreSQL settings during local development or tests, the backend

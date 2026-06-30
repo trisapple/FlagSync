@@ -1,4 +1,4 @@
-import uuid, pytest
+import uuid
 
 from app.routers import auth_router
 from app.services import auth_service
@@ -51,8 +51,10 @@ class TestListAdminUsersAuth:
     def test_regular_user_returns_403(self, client, monkeypatch):
         register_account(client)
         complete_login(
-            client, monkeypatch,
-            email="user@flagsync.test", password="ValidPass123!",
+            client,
+            monkeypatch,
+            email="user@flagsync.test",
+            password="ValidPass123!",
         )
         assert client.get("/api/admin/users").status_code == 403
 
@@ -65,7 +67,9 @@ class TestListAdminUsersAuth:
         assert "total" in body
         assert "active_administrator_count" in body
 
-    def test_response_fields_correct_no_sensitive_data(self, client, monkeypatch, admin_user):
+    def test_response_fields_correct_no_sensitive_data(
+        self, client, monkeypatch, admin_user
+    ):
         login_as_admin(client, monkeypatch, admin_user)
         item = client.get("/api/admin/users").json()["items"][0]
         assert "user_id" in item
@@ -83,7 +87,9 @@ class TestListAdminUsersAuth:
 
 class TestListAdminUsersFilters:
     def test_search_by_display_name(self, client, monkeypatch, admin_user):
-        register_account(client, email="alice@flagsync.test", display_name="Alice Wonder")
+        register_account(
+            client, email="alice@flagsync.test", display_name="Alice Wonder"
+        )
         login_as_admin(client, monkeypatch, admin_user)
         items = client.get("/api/admin/users?search=Alice").json()["items"]
         assert any("Alice" in i["display_name"] for i in items)
@@ -108,7 +114,9 @@ class TestListAdminUsersFilters:
 
     def test_pagination(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert len(client.get("/api/admin/users?page=1&page_size=1").json()["items"]) <= 1
+        assert (
+            len(client.get("/api/admin/users?page=1&page_size=1").json()["items"]) <= 1
+        )
 
     def test_invalid_page_size_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
@@ -120,20 +128,30 @@ class TestUpdateUserStatus:
         return register_and_get_user_id(client, monkeypatch, admin_user, email)
 
     def test_unauthenticated_returns_401(self, client):
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/status",
-            json={"account_status": "suspended", "reason": "Policy violation"},
-        ).status_code == 401
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/status",
+                json={"account_status": "suspended", "reason": "Policy violation"},
+            ).status_code
+            == 401
+        )
 
     def test_regular_user_returns_403(self, client, monkeypatch):
         register_account(client)
-        complete_login(client, monkeypatch, email="user@flagsync.test", password="ValidPass123!")
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/status",
-            json={"account_status": "suspended", "reason": "Policy violation"},
-        ).status_code == 403
+        complete_login(
+            client, monkeypatch, email="user@flagsync.test", password="ValidPass123!"
+        )
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/status",
+                json={"account_status": "suspended", "reason": "Policy violation"},
+            ).status_code
+            == 403
+        )
 
-    def test_suspend_sets_account_status_suspended(self, client, monkeypatch, admin_user):
+    def test_suspend_sets_account_status_suspended(
+        self, client, monkeypatch, admin_user
+    ):
         uid = self._uid(client, monkeypatch, admin_user)
         response = client.patch(
             f"/api/admin/users/{uid}/status",
@@ -142,7 +160,9 @@ class TestUpdateUserStatus:
         assert response.status_code == 200
         assert response.json()["user"]["account_status"] == "suspended"
 
-    def test_reactivate_sets_account_status_active(self, client, monkeypatch, admin_user):
+    def test_reactivate_sets_account_status_active(
+        self, client, monkeypatch, admin_user
+    ):
         uid = self._uid(client, monkeypatch, admin_user)
         client.patch(
             f"/api/admin/users/{uid}/status",
@@ -157,31 +177,43 @@ class TestUpdateUserStatus:
 
     def test_invalid_status_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/status",
-            json={"account_status": "banned", "reason": "Test"},
-        ).status_code == 422
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/status",
+                json={"account_status": "banned", "reason": "Test"},
+            ).status_code
+            == 422
+        )
 
     def test_missing_reason_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/status",
-            json={"account_status": "suspended"},
-        ).status_code == 422
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/status",
+                json={"account_status": "suspended"},
+            ).status_code
+            == 422
+        )
 
     def test_reason_too_short_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/status",
-            json={"account_status": "suspended", "reason": "ab"},
-        ).status_code == 422
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/status",
+                json={"account_status": "suspended", "reason": "ab"},
+            ).status_code
+            == 422
+        )
 
     def test_user_not_found_returns_404(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/status",
-            json={"account_status": "suspended", "reason": "Policy violation"},
-        ).status_code == 404
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/status",
+                json={"account_status": "suspended", "reason": "Policy violation"},
+            ).status_code
+            == 404
+        )
 
     def test_response_includes_message(self, client, monkeypatch, admin_user):
         uid = self._uid(client, monkeypatch, admin_user)
@@ -198,35 +230,51 @@ class TestUpdateUserStatus:
             json={"account_status": "suspended", "reason": "Policy violation"},
         )
         logs = client.get("/api/audit-logs").json()
-        assert any(l["action_type"] == "user_status_changed" for l in logs)
+        assert any(log["action_type"] == "user_status_changed" for log in logs)
 
-    def test_audit_log_contains_no_sensitive_data(self, client, monkeypatch, admin_user):
+    def test_audit_log_contains_no_sensitive_data(
+        self, client, monkeypatch, admin_user
+    ):
         uid = self._uid(client, monkeypatch, admin_user)
         client.patch(
             f"/api/admin/users/{uid}/status",
             json={"account_status": "suspended", "reason": "Policy violation"},
         )
         logs = client.get("/api/audit-logs").json()
-        log = next(l for l in logs if l["action_type"] == "user_status_changed")
+        log = next(
+            entry for entry in logs if entry["action_type"] == "user_status_changed"
+        )
         if log["details"]:
             forbidden = {"password", "password_hash", "token", "secret"}
             assert not forbidden.intersection(set(log["details"].keys()))
-    
+
     def test_admin_cannot_suspend_themselves(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
         me = client.get("/api/auth/me").json()
-        assert client.patch(
-            f"/api/admin/users/{me['user_id']}/status",
-            json={"account_status": "suspended", "reason": "Self suspension attempt"},
-        ).status_code == 403
+        assert (
+            client.patch(
+                f"/api/admin/users/{me['user_id']}/status",
+                json={
+                    "account_status": "suspended",
+                    "reason": "Self suspension attempt",
+                },
+            ).status_code
+            == 403
+        )
 
     def test_cannot_suspend_last_administrator(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
         me = client.get("/api/auth/me").json()
-        assert client.patch(
-            f"/api/admin/users/{me['user_id']}/status",
-            json={"account_status": "suspended", "reason": "Last admin lockout attempt"},
-        ).status_code == 403
+        assert (
+            client.patch(
+                f"/api/admin/users/{me['user_id']}/status",
+                json={
+                    "account_status": "suspended",
+                    "reason": "Last admin lockout attempt",
+                },
+            ).status_code
+            == 403
+        )
 
 
 class TestDeleteUser:
@@ -234,16 +282,24 @@ class TestDeleteUser:
         return register_and_get_user_id(client, monkeypatch, admin_user, email)
 
     def test_unauthenticated_returns_401(self, client):
-        assert client.delete(
-            f"/api/admin/users/{uuid.uuid4()}?reason=Requested+deletion"
-        ).status_code == 401
+        assert (
+            client.delete(
+                f"/api/admin/users/{uuid.uuid4()}?reason=Requested+deletion"
+            ).status_code
+            == 401
+        )
 
     def test_regular_user_returns_403(self, client, monkeypatch):
         register_account(client)
-        complete_login(client, monkeypatch, email="user@flagsync.test", password="ValidPass123!")
-        assert client.delete(
-            f"/api/admin/users/{uuid.uuid4()}?reason=Requested+deletion"
-        ).status_code == 403
+        complete_login(
+            client, monkeypatch, email="user@flagsync.test", password="ValidPass123!"
+        )
+        assert (
+            client.delete(
+                f"/api/admin/users/{uuid.uuid4()}?reason=Requested+deletion"
+            ).status_code
+            == 403
+        )
 
     def test_delete_scrubs_user(self, client, monkeypatch, admin_user):
         uid = self._uid(client, monkeypatch, admin_user)
@@ -253,9 +309,12 @@ class TestDeleteUser:
 
     def test_user_not_found_returns_404(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.delete(
-            f"/api/admin/users/{uuid.uuid4()}?reason=Requested+deletion"
-        ).status_code == 404
+        assert (
+            client.delete(
+                f"/api/admin/users/{uuid.uuid4()}?reason=Requested+deletion"
+            ).status_code
+            == 404
+        )
 
     def test_missing_reason_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
@@ -265,21 +324,27 @@ class TestDeleteUser:
         uid = self._uid(client, monkeypatch, admin_user)
         client.delete(f"/api/admin/users/{uid}?reason=Requested+deletion")
         logs = client.get("/api/audit-logs").json()
-        assert any(l["action_type"] == "admin_user_deleted" for l in logs)
+        assert any(log["action_type"] == "admin_user_deleted" for log in logs)
 
     def test_admin_cannot_delete_themselves(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
         me = client.get("/api/auth/me").json()
-        assert client.delete(
-            f"/api/admin/users/{me['user_id']}?reason=Self+deletion+attempt"
-        ).status_code == 403
+        assert (
+            client.delete(
+                f"/api/admin/users/{me['user_id']}?reason=Self+deletion+attempt"
+            ).status_code
+            == 403
+        )
 
     def test_cannot_delete_last_administrator(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
         me = client.get("/api/auth/me").json()
-        assert client.delete(
-            f"/api/admin/users/{me['user_id']}?reason=Last+admin+deletion"
-        ).status_code == 403
+        assert (
+            client.delete(
+                f"/api/admin/users/{me['user_id']}?reason=Last+admin+deletion"
+            ).status_code
+            == 403
+        )
 
 
 class TestUpdateUserRole:
@@ -287,18 +352,26 @@ class TestUpdateUserRole:
         return register_and_get_user_id(client, monkeypatch, admin_user, email)
 
     def test_unauthenticated_returns_401(self, client):
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/role",
-            json={"role_name": "organiser", "reason": "Approved request"},
-        ).status_code == 401
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/role",
+                json={"role_name": "organiser", "reason": "Approved request"},
+            ).status_code
+            == 401
+        )
 
     def test_regular_user_returns_403(self, client, monkeypatch):
         register_account(client)
-        complete_login(client, monkeypatch, email="user@flagsync.test", password="ValidPass123!")
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/role",
-            json={"role_name": "organiser", "reason": "Approved request"},
-        ).status_code == 403
+        complete_login(
+            client, monkeypatch, email="user@flagsync.test", password="ValidPass123!"
+        )
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/role",
+                json={"role_name": "organiser", "reason": "Approved request"},
+            ).status_code
+            == 403
+        )
 
     def test_promote_to_organiser(self, client, monkeypatch, admin_user):
         uid = self._uid(client, monkeypatch, admin_user)
@@ -313,38 +386,53 @@ class TestUpdateUserRole:
         uid = self._uid(client, monkeypatch, admin_user)
         response = client.patch(
             f"/api/admin/users/{uid}/role",
-            json={"role_name": "administrator", "reason": "Elevated privileges required"},
+            json={
+                "role_name": "administrator",
+                "reason": "Elevated privileges required",
+            },
         )
         assert response.status_code == 200
         assert response.json()["user"]["role_name"] == "administrator"
 
     def test_invalid_role_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/role",
-            json={"role_name": "superuser", "reason": "Test"},
-        ).status_code == 422
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/role",
+                json={"role_name": "superuser", "reason": "Test"},
+            ).status_code
+            == 422
+        )
 
     def test_missing_reason_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/role",
-            json={"role_name": "organiser"},
-        ).status_code == 422
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/role",
+                json={"role_name": "organiser"},
+            ).status_code
+            == 422
+        )
 
     def test_reason_too_short_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/role",
-            json={"role_name": "organiser", "reason": "ab"},
-        ).status_code == 422
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/role",
+                json={"role_name": "organiser", "reason": "ab"},
+            ).status_code
+            == 422
+        )
 
     def test_user_not_found_returns_404(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert client.patch(
-            f"/api/admin/users/{uuid.uuid4()}/role",
-            json={"role_name": "organiser", "reason": "Approved request"},
-        ).status_code == 404
+        assert (
+            client.patch(
+                f"/api/admin/users/{uuid.uuid4()}/role",
+                json={"role_name": "organiser", "reason": "Approved request"},
+            ).status_code
+            == 404
+        )
 
     def test_suspended_user_cannot_change_role(self, client, monkeypatch, admin_user):
         uid = self._uid(client, monkeypatch, admin_user)
@@ -352,10 +440,13 @@ class TestUpdateUserRole:
             f"/api/admin/users/{uid}/status",
             json={"account_status": "suspended", "reason": "Suspended for testing"},
         )
-        assert client.patch(
-            f"/api/admin/users/{uid}/role",
-            json={"role_name": "organiser", "reason": "Approved request"},
-        ).status_code == 409
+        assert (
+            client.patch(
+                f"/api/admin/users/{uid}/role",
+                json={"role_name": "organiser", "reason": "Approved request"},
+            ).status_code
+            == 409
+        )
 
     def test_role_change_creates_audit_log(self, client, monkeypatch, admin_user):
         uid = self._uid(client, monkeypatch, admin_user)
@@ -364,23 +455,29 @@ class TestUpdateUserRole:
             json={"role_name": "organiser", "reason": "Approved organiser request"},
         )
         logs = client.get("/api/audit-logs").json()
-        assert any(l["action_type"] == "user_role_changed" for l in logs)
+        assert any(log["action_type"] == "user_role_changed" for log in logs)
 
     def test_admin_cannot_change_own_role(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
         me = client.get("/api/auth/me").json()
-        assert client.patch(
-            f"/api/admin/users/{me['user_id']}/role",
-            json={"role_name": "user", "reason": "Self demotion attempt"},
-        ).status_code == 403
+        assert (
+            client.patch(
+                f"/api/admin/users/{me['user_id']}/role",
+                json={"role_name": "user", "reason": "Self demotion attempt"},
+            ).status_code
+            == 403
+        )
 
     def test_cannot_demote_last_administrator(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
         me = client.get("/api/auth/me").json()
-        assert client.patch(
-            f"/api/admin/users/{me['user_id']}/role",
-            json={"role_name": "user", "reason": "Last admin demotion attempt"},
-        ).status_code == 403
+        assert (
+            client.patch(
+                f"/api/admin/users/{me['user_id']}/role",
+                json={"role_name": "user", "reason": "Last admin demotion attempt"},
+            ).status_code
+            == 403
+        )
 
 
 class TestListAdminAuditLogs:
@@ -389,7 +486,9 @@ class TestListAdminAuditLogs:
 
     def test_regular_user_returns_403(self, client, monkeypatch):
         register_account(client)
-        complete_login(client, monkeypatch, email="user@flagsync.test", password="ValidPass123!")
+        complete_login(
+            client, monkeypatch, email="user@flagsync.test", password="ValidPass123!"
+        )
         assert client.get("/api/admin/audit-logs").status_code == 403
 
     def test_admin_can_list_audit_logs(self, client, monkeypatch, admin_user):
@@ -424,7 +523,10 @@ class TestListAdminAuditLogs:
 
     def test_pagination(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
-        assert len(client.get("/api/admin/audit-logs?page=1&page_size=1").json()["items"]) <= 1
+        assert (
+            len(client.get("/api/admin/audit-logs?page=1&page_size=1").json()["items"])
+            <= 1
+        )
 
     def test_invalid_page_size_returns_422(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)

@@ -421,7 +421,7 @@ def is_password_breached(password: str) -> bool:
 def validate_password_policy(password: str) -> None:
     if len(password) < 12:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Password must be at least 12 characters long",
         )
 
@@ -433,13 +433,13 @@ def validate_password_policy(password: str) -> None:
     ]
     if not all(checks):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Password must include uppercase, lowercase, number, and symbol characters",
         )
 
     if is_password_breached(password):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Password appears in a known breached password list",
         )
 

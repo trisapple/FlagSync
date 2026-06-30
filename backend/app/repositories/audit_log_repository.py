@@ -61,7 +61,9 @@ def get_audit_logs_paginated(
         statement = statement.where(AuditLog.actor_user_id == actor_user_id)
 
     if date_from:
-        start_dt = datetime(date_from.year, date_from.month, date_from.day, tzinfo=timezone.utc)
+        start_dt = datetime(
+            date_from.year, date_from.month, date_from.day, tzinfo=timezone.utc
+        )
         statement = statement.where(AuditLog.created_at >= start_dt)
 
     if date_to:

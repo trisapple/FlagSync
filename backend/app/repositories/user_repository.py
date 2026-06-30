@@ -113,7 +113,9 @@ def get_users_paginated(
     total = db.scalar(count_statement) or 0
 
     offset = (page - 1) * page_size
-    statement = statement.order_by(User.created_at.desc()).offset(offset).limit(page_size)
+    statement = (
+        statement.order_by(User.created_at.desc()).offset(offset).limit(page_size)
+    )
     users = list(db.scalars(statement).all())
 
     return users, total
