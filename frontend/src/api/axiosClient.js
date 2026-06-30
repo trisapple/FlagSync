@@ -15,9 +15,13 @@ const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const detail = error.response?.data?.detail;
     const message =
-      error.response?.data?.detail ??
-      "The request could not be completed. Please try again.";
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d) => d.msg ?? String(d)).join(", ")
+          : "The request could not be completed. Please try again.";
 
     return Promise.reject(new Error(message));
   },
