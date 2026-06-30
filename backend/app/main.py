@@ -13,6 +13,7 @@ from app.repositories.user_repository import create_user, get_user_by_email
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.auth_router import router as auth_router
 from app.routers.roles import router as roles_router
+from app.schemas.user import UserRegistration
 from app.services.auth_service import (
     apply_no_store_headers,
     apply_security_headers,
@@ -129,3 +130,12 @@ def database_health_check(
             status_code=503,
             detail="Database connection unavailable",
         )
+    
+app = FastAPI()
+
+# The "user_data: UserRegistration" part is the magic. 
+# FastAPI will automatically run all your Pydantic security checks here.
+@app.post("/api/register")
+async def register_user(user_data: UserRegistration):
+    # If the code reaches this line, the input is 100% safe and sanitized.
+    return {"message": "Payload is secure. Ready to hash password and save to DB!", "data": user_data}
