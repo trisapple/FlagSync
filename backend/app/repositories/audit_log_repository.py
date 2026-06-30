@@ -1,9 +1,9 @@
 import uuid
 from typing import Any
-
-from sqlalchemy import desc, select, func
-from sqlalchemy.orm import Session
 from datetime import date, datetime, timezone
+
+from sqlalchemy import asc, desc, select, func
+from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
 
@@ -44,8 +44,8 @@ def list_audit_logs(
 def get_audit_logs_paginated(
     db: Session,
     *,
-    action: str | None = None,
-    actor_user_id: int | None = None,
+    action_type: str | None = None,
+    actor_user_id: uuid.UUID | None = None,
     date_from: "date | None" = None,
     date_to: "date | None" = None,
     page: int = 1,
@@ -54,8 +54,8 @@ def get_audit_logs_paginated(
 ) -> "tuple[list[AuditLog], int]":
     statement = select(AuditLog)
 
-    if action:
-        statement = statement.where(AuditLog.action.ilike(f"%{action}%"))
+    if action_type:
+        statement = statement.where(AuditLog.action_type.ilike(f"%{action_type}%"))
 
     if actor_user_id is not None:
         statement = statement.where(AuditLog.actor_user_id == actor_user_id)
@@ -74,9 +74,9 @@ def get_audit_logs_paginated(
     total = db.scalar(count_statement) or 0
 
     if order == "asc":
-        statement = statement.order_by(AuditLog.created_at.asc())
+        statement = statement.order_by(asc(AuditLog.created_at))
     else:
-        statement = statement.order_by(AuditLog.created_at.desc())
+        statement = statement.order_by(desc(AuditLog.created_at))
 
     offset = (page - 1) * page_size
     statement = statement.offset(offset).limit(page_size)

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import Literal
 
@@ -7,11 +8,11 @@ from pydantic import BaseModel, ConfigDict, Field
 class AdminUserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    user_id: int
+    user_id: uuid.UUID
     display_name: str
     email: str
     role_name: str | None = None
-    is_active: bool
+    account_status: str
     created_at: datetime
 
     @classmethod
@@ -21,7 +22,7 @@ class AdminUserResponse(BaseModel):
             display_name=user.display_name,
             email=user.email,
             role_name=user.role.role_name if user.role is not None else None,
-            is_active=user.is_active,
+            account_status=user.account_status,
             created_at=user.created_at,
         )
 
@@ -33,10 +34,11 @@ class AdminUsersListResponse(BaseModel):
 
 
 AllowedRoleName = Literal["user", "organiser", "administrator"]
+AllowedAccountStatus = Literal["active", "suspended"]
 
 
 class UpdateUserStatusRequest(BaseModel):
-    is_active: bool
+    account_status: AllowedAccountStatus
     reason: str = Field(
         min_length=5,
         max_length=500,

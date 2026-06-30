@@ -4,6 +4,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.orm import Session
 
 from app.models.user import User
+from app.models.role import Role
 
 
 def get_user_by_email(
@@ -87,12 +88,10 @@ def get_users_paginated(
     *,
     search: str | None = None,
     role: str | None = None,
-    is_active: bool | None = None,
+    account_status: str | None = None,
     page: int = 1,
     page_size: int = 20,
 ) -> tuple[list[User], int]:
-    from app.models.role import Role
-
     statement = select(User).join(Role, User.role_id == Role.role_id)
 
     if search:
@@ -107,14 +106,14 @@ def get_users_paginated(
     if role:
         statement = statement.where(Role.role_name == role)
 
-    if is_active is not None:
-        statement = statement.where(User.is_active == is_active)
+    if account_status:
+        statement = statement.where(User.account_status == account_status)
 
     count_statement = select(func.count()).select_from(statement.subquery())
     total = db.scalar(count_statement) or 0
 
     offset = (page - 1) * page_size
-    statement = statement.order_by(User.user_id.desc()).offset(offset).limit(page_size)
+    statement = statement.order_by(User.created_at.desc()).offset(offset).limit(page_size)
     users = list(db.scalars(statement).all())
 
     return users, total
@@ -126,14 +125,17 @@ def count_active_administrators(db: Session) -> int:
     statement = select(func.count()).select_from(
         select(User)
         .join(Role, User.role_id == Role.role_id)
-        .where(Role.role_name == "administrator", User.is_active == True)
+        .where(
+            Role.role_name == "administrator",
+            User.account_status == "active",
+        )
         .subquery()
     )
     return db.scalar(statement) or 0
 
 
-def update_user_is_active(db: Session, user: User, is_active: bool) -> User:
-    user.is_active = is_active
+def update_user_account_status(db: Session, user: User, account_status: str) -> User:
+    user.account_status = account_status
     db.flush()
     db.refresh(user)
     return user
