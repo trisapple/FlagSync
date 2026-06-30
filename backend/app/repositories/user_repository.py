@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import Session
 
@@ -14,7 +16,7 @@ def get_user_by_email(
 
 def get_user_by_id(
     db: Session,
-    user_id: int,
+    user_id: uuid.UUID,
 ) -> User | None:
     statement = select(User).where(User.user_id == user_id)
     return db.scalar(statement)
@@ -27,14 +29,14 @@ def create_user(
     display_name: str,
     password_hash: str,
     role_id: int,
-    is_active: bool = True,
+    email_verified: bool = False,
 ) -> User:
     user = User(
         email=email,
         display_name=display_name,
         password_hash=password_hash,
         role_id=role_id,
-        is_active=is_active,
+        email_verified=email_verified,
     )
     db.add(user)
     db.flush()
@@ -74,7 +76,7 @@ def deactivate_user(
     user.email = replacement_email
     user.display_name = "Deleted user"
     user.password_hash = replacement_password_hash
-    user.is_active = False
+    user.account_status = "deleted"
     db.flush()
     db.refresh(user)
     return user

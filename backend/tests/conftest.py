@@ -1,10 +1,15 @@
 import base64
+import codecs
 import os
 
 import pytest
 from fastapi.testclient import TestClient
 
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["SQLITE_DATABASE_URL"] = "sqlite:///:memory:"
+os.environ.pop("DB_USER", None)
+os.environ.pop("DB_PASSWORD", None)
+os.environ.pop("DB_HOST", None)
 os.environ["SECRET_KEY"] = "test-secret-key-that-is-at-least-thirty-two-bytes"
 os.environ["AUTH_RATE_LIMIT_PER_MINUTE"] = "100"
 os.environ["EMAIL_VERIFICATION_REQUIRED"] = "false"
@@ -51,8 +56,22 @@ def solve_registration_challenge(client: TestClient) -> tuple[str, str]:
     response = client.get("/api/auth/register/challenge")
     assert response.status_code == 200
     payload = response.json()
-    encoded_answer = payload["prompt"].split(": ", maxsplit=1)[1]
-    answer = base64.b64decode(encoded_answer).decode("utf-8")
+    puzzle_type = payload["puzzle_type"]
+    encoded = payload["prompt"].split(": ", maxsplit=1)[1]
+
+    if puzzle_type == "base64":
+        answer = base64.b64decode(encoded).decode("utf-8")
+    elif puzzle_type == "hex":
+        answer = bytes.fromhex(encoded).decode("utf-8")
+    elif puzzle_type == "rot13":
+        answer = codecs.decode(encoded, "rot_13")
+    elif puzzle_type == "reverse":
+        answer = encoded[::-1]
+    elif puzzle_type == "binary":
+        answer = "".join(chr(int(byte, 2)) for byte in encoded.split())
+    else:
+        raise AssertionError(f"Unknown puzzle type: {puzzle_type}")
+
     return payload["challenge_id"], answer
 
 

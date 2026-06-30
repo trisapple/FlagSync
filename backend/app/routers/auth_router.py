@@ -16,12 +16,19 @@ from app.repositories.user_repository import (
 from app.schemas.auth_schema import (
     AuthResponse,
     AuthUserResponse,
+    LoginInitiateResponse,
+    LoginOtpRequest,
     LoginRequest,
     MessageResponse,
     RegisterRequest,
     RegistrationChallengeResponse,
+    ResendVerificationRequest,
     UpdateProfileRequest,
     VerifyEmailRequest,
+)
+from app.services.email_service import (
+    send_login_otp_email,
+    send_verification_email,
 )
 from app.services.auth_service import (
     EMAIL_VERIFICATION_REQUIRED,
@@ -33,8 +40,10 @@ from app.services.auth_service import (
     clear_auth_cookie,
     clear_failed_logins,
     consume_email_verification_token,
+    consume_login_otp,
     create_access_token,
     create_email_verification_token,
+    create_login_otp,
     create_registration_challenge,
     get_client_ip,
     get_current_auth_context,
@@ -47,16 +56,14 @@ from app.services.auth_service import (
     register_failed_login,
     revoke_token,
     set_auth_cookie,
+    try_revoke_existing_session,
     validate_password_policy,
     validate_registration_challenge,
     verify_password,
 )
 
 
-router = APIRouter(
-    prefix="/api/auth",
-    tags=["Auth"],
-)
+router = APIRouter()
 
 
 def _enforce_auth_rate_limit(request: Request) -> None:
@@ -108,8 +115,8 @@ def register(
             detail="Email is already registered",
         )
 
-    participant_role = get_role_by_name(db, "participant")
-    if participant_role is None:
+    default_role = get_role_by_name(db, "user")
+    if default_role is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Registration is temporarily unavailable",
@@ -121,22 +128,40 @@ def register(
             email=email,
             display_name=account.display_name,
             password_hash=get_password_hash(account.password),
-            role_id=participant_role.role_id,
-            is_active=not EMAIL_VERIFICATION_REQUIRED,
+            role_id=default_role.role_id,
+            email_verified=not EMAIL_VERIFICATION_REQUIRED,
         )
         verification_token = None
+        email_sent = False
         if EMAIL_VERIFICATION_REQUIRED:
             verification_token = create_email_verification_token(user.user_id)
+            email_sent = send_verification_email(
+                to_email=user.email,
+                token=verification_token,
+                display_name=user.display_name,
+            )
 
         record_audit_event(
             db,
-            action="user_registered",
+            action_type="user_registered",
+            result="success",
             request=request,
             actor_user_id=user.user_id,
             resource_type="user",
             resource_id=str(user.user_id),
             details={"email_verification_required": EMAIL_VERIFICATION_REQUIRED},
         )
+        if EMAIL_VERIFICATION_REQUIRED:
+            record_audit_event(
+                db,
+                action_type="verification_email_sent",
+                result="success" if email_sent else "failure",
+                request=request,
+                actor_user_id=user.user_id,
+                resource_type="user",
+                resource_id=str(user.user_id),
+                details={"trigger": "registration"},
+            )
         db.commit()
 
     except SQLAlchemyError:
@@ -148,12 +173,61 @@ def register(
 
     message = "Registration successful"
     if EMAIL_VERIFICATION_REQUIRED:
-        message = "Registration successful. Verify your email before logging in."
+        message = (
+            "Registration successful. Please check your inbox "
+            "(and spam folder) for a verification link before logging in."
+        )
 
     return MessageResponse(
         message=message,
-        verification_token=verification_token if EXPOSE_DEV_VERIFICATION_TOKEN else None,
+        verification_token=verification_token
+        if EXPOSE_DEV_VERIFICATION_TOKEN
+        else None,
     )
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+def resend_verification(
+    request: Request,
+    body: ResendVerificationRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    _enforce_auth_rate_limit(request)
+
+    generic_message = (
+        "If that email is registered and not yet verified, "
+        "we've sent a new verification link."
+    )
+
+    email = normalize_email(body.email)
+    user = get_user_by_email(db, email)
+
+    if user is None or user.account_status != "active" or user.email_verified:
+        return MessageResponse(message=generic_message)
+
+    verification_token = create_email_verification_token(user.user_id)
+    email_sent = send_verification_email(
+        to_email=user.email,
+        token=verification_token,
+        display_name=user.display_name,
+    )
+
+    try:
+        record_audit_event(
+            db,
+            action_type="verification_email_sent",
+            result="success" if email_sent else "failure",
+            request=request,
+            actor_user_id=user.user_id,
+            resource_type="user",
+            resource_id=str(user.user_id),
+            details={"trigger": "resend_request"},
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+    return MessageResponse(message=generic_message)
 
 
 @router.post("/verify-email", response_model=MessageResponse)
@@ -177,10 +251,11 @@ def verify_email(
         )
 
     try:
-        user.is_active = True
+        user.email_verified = True
         record_audit_event(
             db,
-            action="email_verified",
+            action_type="email_verified",
+            result="success",
             request=request,
             actor_user_id=user.user_id,
             resource_type="user",
@@ -198,13 +273,12 @@ def verify_email(
     return MessageResponse(message="Email verified successfully")
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login", response_model=LoginInitiateResponse)
 def login(
     request: Request,
-    response: Response,
     credentials: LoginRequest,
     db: Session = Depends(get_db),
-) -> AuthResponse:
+) -> LoginInitiateResponse:
     _enforce_auth_rate_limit(request)
 
     email = normalize_email(credentials.email)
@@ -223,7 +297,8 @@ def login(
         try:
             record_audit_event(
                 db,
-                action="login_failed",
+                action_type="login_failed",
+                result="failure",
                 request=request,
                 resource_type="user",
                 resource_id=email,
@@ -245,6 +320,99 @@ def login(
         )
 
     clear_failed_logins(lockout_key)
+
+    intent_id, otp = create_login_otp(user.user_id)
+    email_sent = send_login_otp_email(
+        to_email=user.email,
+        otp=otp,
+        display_name=user.display_name,
+    )
+
+    try:
+        record_audit_event(
+            db,
+            action_type="login_otp_sent",
+            result="success" if email_sent else "failure",
+            request=request,
+            actor_user_id=user.user_id,
+            resource_type="user",
+            resource_id=str(user.user_id),
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+    return LoginInitiateResponse(
+        message="Verification code sent to your email. Enter it to finish signing in.",
+        login_intent_id=intent_id,
+    )
+
+
+@router.post("/login/verify-otp", response_model=AuthResponse)
+def verify_login_otp(
+    request: Request,
+    response: Response,
+    body: LoginOtpRequest,
+    db: Session = Depends(get_db),
+) -> AuthResponse:
+    _enforce_auth_rate_limit(request)
+
+    otp_result = consume_login_otp(body.login_intent_id, body.otp)
+    if otp_result.user_id is None:
+        try:
+            record_audit_event(
+                db,
+                action_type="login_otp_failed",
+                result="failure",
+                request=request,
+                resource_type="login_intent",
+                resource_id=body.login_intent_id,
+                details={
+                    "attempts_remaining": otp_result.attempts_remaining,
+                    "reason": otp_result.reason,
+                },
+            )
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+
+        if otp_result.reason == "wrong":
+            attempt_word = (
+                "attempt" if otp_result.attempts_remaining == 1 else "attempts"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=(
+                    f"Invalid code. {otp_result.attempts_remaining} "
+                    f"{attempt_word} remaining."
+                ),
+            )
+
+        if otp_result.reason == "exhausted":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=(
+                    "Too many wrong codes. Please sign in again to receive a new code."
+                ),
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=(
+                "Verification code is invalid or has expired. "
+                "Please sign in again to receive a new code."
+            ),
+        )
+
+    user = get_user_by_id(db, otp_result.user_id)
+    if user is None or user.account_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Verification code is invalid or expired",
+        )
+
+    try_revoke_existing_session(request)
+
     token = create_access_token(
         {
             "sub": str(user.user_id),
@@ -257,7 +425,8 @@ def login(
     try:
         record_audit_event(
             db,
-            action="login_success",
+            action_type="login_otp_verified",
+            result="success",
             request=request,
             actor_user_id=user.user_id,
             resource_type="user",
@@ -268,7 +437,7 @@ def login(
         db.rollback()
 
     return AuthResponse(
-        message="Login successful",
+        message="Sign-in successful",
         user=AuthUserResponse(**get_user_auth_payload(user)),
     )
 
@@ -284,7 +453,8 @@ def logout(
         revoke_token(context.token_data)
         record_audit_event(
             db,
-            action="logout",
+            action_type="logout",
+            result="success",
             request=request,
             actor_user_id=context.user.user_id,
             resource_type="user",
@@ -358,7 +528,8 @@ def update_me(
         revoke_token(context.token_data)
         record_audit_event(
             db,
-            action="profile_updated",
+            action_type="profile_updated",
+            result="success",
             request=request,
             actor_user_id=user.user_id,
             resource_type="user",
@@ -403,7 +574,8 @@ def delete_me(
         revoke_token(context.token_data)
         record_audit_event(
             db,
-            action="account_deleted",
+            action_type="account_deleted",
+            result="success",
             request=request,
             actor_user_id=user.user_id,
             resource_type="user",

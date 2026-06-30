@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import PublicLayout from "../../components/public/PublicLayout";
 import { login } from "../../services/authService";
-import { saveSessionUser } from "../../utils/authSession";
-import { getDashboardPath } from "../../utils/roleRoutes";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -37,21 +35,14 @@ function LoginPage() {
 
     try {
       const result = await login(credentials);
-      const user = result.user ?? result;
-      const role = user.role ?? user.role_name ?? result.role ?? result.role_name;
-      const dashboardPath = getDashboardPath(role);
-
-      if (!dashboardPath) {
-        throw new Error("Your account does not have a supported dashboard role.");
-      }
-
-      saveSessionUser({
-        user_id: user.user_id ?? result.user_id ?? "",
-        role,
-        email: user.email ?? result.email ?? "",
-        display_name: user.display_name ?? result.display_name ?? "",
+      navigate("/login/verify-otp", {
+        replace: true,
+        state: {
+          loginIntentId: result.login_intent_id,
+          email: credentials.email,
+          returnTo: location.state?.returnTo,
+        },
       });
-      navigate(location.state?.returnTo ?? dashboardPath, { replace: true });
     } catch (loginError) {
       setFeedback({
         type: "error",

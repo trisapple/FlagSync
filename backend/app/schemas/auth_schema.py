@@ -1,4 +1,5 @@
 import re
+import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -35,7 +36,9 @@ class LoginRequest(BaseModel):
 
 class RegistrationChallengeResponse(BaseModel):
     challenge_id: str
+    puzzle_type: str
     prompt: str
+    hint: str
     expires_in_seconds: int
 
 
@@ -88,8 +91,17 @@ class VerifyEmailRequest(BaseModel):
     token: str = Field(min_length=32, max_length=255)
 
 
+class ResendVerificationRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        return _validate_email(value)
+
+
 class AuthUserResponse(BaseModel):
-    user_id: int
+    user_id: uuid.UUID
     email: str
     display_name: str
     role_name: str | None = None
@@ -100,6 +112,16 @@ class AuthUserResponse(BaseModel):
 class AuthResponse(BaseModel):
     message: str
     user: AuthUserResponse | None = None
+
+
+class LoginInitiateResponse(BaseModel):
+    message: str
+    login_intent_id: str
+
+
+class LoginOtpRequest(BaseModel):
+    login_intent_id: str = Field(min_length=16, max_length=128)
+    otp: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
 
 
 class MessageResponse(BaseModel):

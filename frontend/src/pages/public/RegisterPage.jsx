@@ -133,7 +133,7 @@ function RegisterPage() {
                 </ul>
               </div>
               <p className="login-context-note">
-                Public registrations create a standard participant account.
+                Public registrations create a standard user account.
               </p>
             </div>
 
@@ -208,16 +208,21 @@ function RegisterPage() {
                 </div>
 
                 <div className="login-field">
-                  <label htmlFor="challenge_answer">Verification challenge</label>
+                  <label htmlFor="challenge_answer">CTF micro-challenge</label>
                   <span className="register-challenge-prompt">
                     {challenge?.prompt ?? "Loading challenge..."}
                   </span>
+                  {challenge?.hint && (
+                    <span className="register-challenge-hint">
+                      {challenge.hint}
+                    </span>
+                  )}
                   <input
                     id="challenge_answer"
                     name="challenge_answer"
                     type="text"
                     autoComplete="off"
-                    placeholder="Enter the answer"
+                    placeholder="Enter the decoded flag"
                     value={formData.challenge_answer}
                     onChange={handleChange}
                     disabled={!challenge || isSubmitting}

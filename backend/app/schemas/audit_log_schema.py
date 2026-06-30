@@ -1,16 +1,18 @@
+import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
 
 class AuditLogResponse(BaseModel):
-    audit_log_id: int
-    actor_user_id: int | None
-    action: str
+    log_id: uuid.UUID
+    actor_user_id: uuid.UUID | None
+    action_type: str
     resource_type: str | None
     resource_id: str | None
-    ip_address: str | None
-    details_json: str | None
+    result: str
+    details: dict[str, Any] | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

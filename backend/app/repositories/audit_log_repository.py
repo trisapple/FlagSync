@@ -1,3 +1,6 @@
+import uuid
+from typing import Any
+
 from sqlalchemy import desc, select, func
 from sqlalchemy.orm import Session
 from datetime import date, datetime, timezone
@@ -8,20 +11,20 @@ from app.models.audit_log import AuditLog
 def create_audit_log(
     db: Session,
     *,
-    action: str,
-    actor_user_id: int | None = None,
+    action_type: str,
+    result: str,
+    actor_user_id: uuid.UUID | None = None,
     resource_type: str | None = None,
     resource_id: str | None = None,
-    ip_address: str | None = None,
-    details_json: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> AuditLog:
     audit_log = AuditLog(
         actor_user_id=actor_user_id,
-        action=action,
+        action_type=action_type,
         resource_type=resource_type,
         resource_id=resource_id,
-        ip_address=ip_address,
-        details_json=details_json,
+        result=result,
+        details=details,
     )
     db.add(audit_log)
     db.flush()

@@ -1,7 +1,10 @@
 import { Route, Routes } from "react-router-dom";
+import RequireGuest from "../components/auth/RequireGuest";
 import HomePage from "../pages/public/HomePage";
 import LoginPage from "../pages/public/LoginPage";
+import LoginOtpPage from "../pages/public/LoginOtpPage";
 import RegisterPage from "../pages/public/RegisterPage";
+import VerifyEmailPage from "../pages/public/VerifyEmailPage";
 import EventsPage from "../pages/public/EventsPage";
 import EventDetailsPage from "../pages/public/EventDetailsPage";
 import NotFoundPage from "../pages/errors/NotFoundPage";
@@ -20,8 +23,31 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/login"
+        element={
+          <RequireGuest>
+            <LoginPage />
+          </RequireGuest>
+        }
+      />
+      <Route
+        path="/login/verify-otp"
+        element={
+          <RequireGuest>
+            <LoginOtpPage />
+          </RequireGuest>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <RequireGuest>
+            <RegisterPage />
+          </RequireGuest>
+        }
+      />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/events" element={<EventsPage />} />
       <Route path="/events/registered" element={<RegisteredEventsPage />} />
       <Route path="/events/:eventId" element={<EventDetailsPage />} />

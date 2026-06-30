@@ -1,10 +1,12 @@
+import redis
 import os
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from passlib.context import CryptContext
 
 from app.database import Base, SessionLocal, engine, get_db
 from app.models.role import Role
@@ -14,6 +16,7 @@ from app.routers.admin import router as admin_router
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.auth_router import router as auth_router
 from app.routers.roles import router as roles_router
+from app.schemas.user import UserRegistration, UserLogin
 from app.services.auth_service import (
     apply_no_store_headers,
     apply_security_headers,
@@ -52,7 +55,7 @@ async def security_headers_middleware(request, call_next):
     return response
 
 
-app.include_router(auth_router)
+app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(roles_router)
 app.include_router(audit_logs_router)
 app.include_router(admin_router)
@@ -65,7 +68,7 @@ def startup_database() -> None:
 
 
 def _seed_reference_data() -> None:
-    default_roles = ["administrator", "organiser", "participant"]
+    default_roles = ["administrator", "organiser", "user"]
 
     with SessionLocal() as db:
         for role_name in default_roles:
@@ -131,3 +134,61 @@ def database_health_check(
             status_code=503,
             detail="Database connection unavailable",
         )
+
+# The "user_data: UserRegistration" part is the magic. 
+# FastAPI will automatically run all your Pydantic security checks here.
+@app.post("/api/register")
+async def register_user(user_data: UserRegistration):
+    # If the code reaches this line, the input is 100% safe and sanitized.
+    return {"message": "Payload is secure. Ready to hash password and save to DB!", "data": user_data}
+
+# 1. Setup the Password Hasher (Using bcrypt with 12 rounds as required by NSR-R4)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# 2. Setup the Redis Connection (Your fast, temporary memory vault)
+redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+
+@app.post("/api/login")
+async def login_user(credentials: UserLogin):
+    # Create a unique tracking key in Redis for this email
+    redis_key = f"login_attempts:{credentials.email}"
+    
+    # --- DEFENSE 1: Check for Lockout ---
+    failed_attempts = redis_client.get(redis_key)
+    
+    if failed_attempts and int(failed_attempts) >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Account locked due to too many failed attempts. Try again in 15 minutes."
+        )
+
+    # --- MOCK DATABASE CHECK ---
+    # (Your SE teammates will replace this with the real Supabase database query later)
+    db_email = "admin@flagsync.com"
+    db_hashed_password = pwd_context.hash("SuperSecurePassword123!")
+
+    # --- DEFENSE 2: Verify Credentials ---
+    is_email_correct = (credentials.email == db_email)
+    is_password_correct = pwd_context.verify(credentials.password, db_hashed_password)
+
+    if not is_email_correct or not is_password_correct:
+        # Increment the failure counter in Redis
+        redis_client.incr(redis_key)
+        
+        # If this is their 5th strike, lock them out for 15 minutes (900 seconds)
+        if int(redis_client.get(redis_key)) >= 5:
+            redis_client.expire(redis_key, 900) 
+        # Otherwise, reset the 10-minute tracking window (600 seconds)
+        else:
+            redis_client.expire(redis_key, 600)
+            
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    # --- SUCCESS ---
+    # If they log in successfully, wipe their failure slate clean!
+    redis_client.delete(redis_key)
+    
+    return {"message": "Login successful! Session token would be issued here."}
