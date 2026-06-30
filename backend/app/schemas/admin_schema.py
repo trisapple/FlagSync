@@ -32,7 +32,7 @@ class AdminUsersListResponse(BaseModel):
     active_administrator_count: int
 
 
-AllowedRoleName = Literal["participant", "organiser", "administrator"]
+AllowedRoleName = Literal["user", "organiser", "administrator"]
 
 
 class UpdateUserStatusRequest(BaseModel):
@@ -40,7 +40,7 @@ class UpdateUserStatusRequest(BaseModel):
     reason: str = Field(
         min_length=5,
         max_length=500,
-        description="Reason recorded in the audit log (SR-AC2).",
+        description="Reason recorded in the audit log.",
     )
 
 
@@ -49,7 +49,7 @@ class UpdateUserRoleRequest(BaseModel):
     reason: str = Field(
         min_length=5,
         max_length=500,
-        description="Reason recorded in the audit log (SR-AC2).",
+        description="Reason recorded in the audit log.",
     )
 
 

@@ -94,6 +94,22 @@ def update_user_status(
             detail="User not found",
         )
 
+    if not body.is_active:
+        if user.user_id == admin.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You cannot suspend your own account.",
+            )
+        if (
+            user.role is not None
+            and user.role.role_name == "administrator"
+            and count_active_administrators(db) <= 1
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot suspend the last active administrator.",
+            )
+
     previous_status = user.is_active
 
     try:
@@ -147,6 +163,21 @@ def delete_user(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
+        )
+
+    if user.user_id == admin.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot delete your own account via the admin panel.",
+        )
+    if (
+        user.role is not None
+        and user.role.role_name == "administrator"
+        and count_active_administrators(db) <= 1
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete the last active administrator.",
         )
 
     replacement_email = f"deleted-{user_id}-{secrets.token_hex(4)}@deleted.local"
@@ -209,6 +240,22 @@ def update_user_role_endpoint(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Role cannot be changed for an inactive account.",
+        )
+
+    if user.user_id == admin.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot change your own role.",
+        )
+    if (
+        user.role is not None
+        and user.role.role_name == "administrator"
+        and body.role_name != "administrator"
+        and count_active_administrators(db) <= 1
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot demote the last active administrator.",
         )
 
     new_role = get_role_by_name(db, body.role_name)

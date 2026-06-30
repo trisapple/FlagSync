@@ -214,6 +214,24 @@ class TestUpdateUserStatus:
             json={"is_active": False, "reason": "Policy violation"},
         )
         assert "message" in response.json()
+    
+    def test_admin_cannot_suspend_themselves(self, client, admin_user):
+        login_as_admin(client, admin_user)
+        me = client.get("/api/auth/me").json()
+        response = client.patch(
+            f"/api/admin/users/{me['user_id']}/status",
+            json={"is_active": False, "reason": "Self suspension attempt"},
+        )
+        assert response.status_code == 403
+
+    def test_cannot_suspend_last_administrator(self, client, admin_user):
+        login_as_admin(client, admin_user)
+        me = client.get("/api/auth/me").json()
+        response = client.patch(
+            f"/api/admin/users/{me['user_id']}/status",
+            json={"is_active": False, "reason": "Last admin suspension attempt"},
+        )
+        assert response.status_code == 403
 
 
 class TestDeleteUser:
@@ -263,9 +281,22 @@ class TestDeleteUser:
         logs = client.get("/api/audit-logs").json()
         actions = [log["action"] for log in logs]
         assert "admin_user_deleted" in actions
-        logs = client.get("/api/audit-logs").json()
-        actions = [log["action"] for log in logs]
-        assert "admin_user_deleted" in actions
+    
+    def test_admin_cannot_delete_themselves(self, client, admin_user):
+        login_as_admin(client, admin_user)
+        me = client.get("/api/auth/me").json()
+        response = client.delete(
+            f"/api/admin/users/{me['user_id']}?reason=Self+deletion+attempt"
+        )
+        assert response.status_code == 403
+
+    def test_cannot_delete_last_administrator(self, client, admin_user):
+        login_as_admin(client, admin_user)
+        me = client.get("/api/auth/me").json()
+        response = client.delete(
+            f"/api/admin/users/{me['user_id']}?reason=Last+admin+deletion+attempt"
+        )
+        assert response.status_code == 403
 
 
 class TestUpdateUserRole:
@@ -346,6 +377,7 @@ class TestUpdateUserRole:
 
     def test_inactive_user_cannot_change_role(self, client, admin_user):
         uid = self._get_participant_id(client, admin_user)
+        # deactivate first
         client.patch(
             f"/api/admin/users/{uid}/status",
             json={"is_active": False, "reason": "Suspended for testing"},
@@ -365,6 +397,24 @@ class TestUpdateUserRole:
         logs = client.get("/api/audit-logs").json()
         actions = [log["action"] for log in logs]
         assert "user_role_changed" in actions
+
+    def test_admin_cannot_change_own_role(self, client, admin_user):
+        login_as_admin(client, admin_user)
+        me = client.get("/api/auth/me").json()
+        response = client.patch(
+            f"/api/admin/users/{me['user_id']}/role",
+            json={"role_name": "participant", "reason": "Self demotion attempt"},
+        )
+        assert response.status_code == 403
+
+    def test_cannot_demote_last_administrator(self, client, admin_user):
+        login_as_admin(client, admin_user)
+        me = client.get("/api/auth/me").json()
+        response = client.patch(
+            f"/api/admin/users/{me['user_id']}/role",
+            json={"role_name": "participant", "reason": "Last admin demotion attempt"},
+        )
+        assert response.status_code == 403
 
 
 class TestListAdminAuditLogs:
