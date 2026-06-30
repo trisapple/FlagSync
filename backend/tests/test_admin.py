@@ -2,8 +2,7 @@ import uuid
 
 from app.routers import auth_router
 from app.services import auth_service
-from app.services.auth_service import COOKIE_NAME
-from conftest import register_account, solve_registration_challenge
+from conftest import register_account
 
 
 def complete_login(client, monkeypatch, *, email: str, password: str):
