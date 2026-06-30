@@ -26,7 +26,7 @@ def _validate_display_name(value: str) -> str:
 
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
-    password: str = Field(min_length=8, max_length=255)
+    password: str = Field(max_length=255)
 
     @field_validator("email")
     @classmethod
