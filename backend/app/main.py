@@ -54,7 +54,7 @@ async def security_headers_middleware(request, call_next):
     return response
 
 
-app.include_router(auth_router)
+app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(roles_router)
 app.include_router(audit_logs_router)
 
@@ -132,8 +132,6 @@ def database_health_check(
             status_code=503,
             detail="Database connection unavailable",
         )
-    
-app = FastAPI()
 
 # The "user_data: UserRegistration" part is the magic. 
 # FastAPI will automatically run all your Pydantic security checks here.
@@ -141,8 +139,6 @@ app = FastAPI()
 async def register_user(user_data: UserRegistration):
     # If the code reaches this line, the input is 100% safe and sanitized.
     return {"message": "Payload is secure. Ready to hash password and save to DB!", "data": user_data}
-
-app = FastAPI()
 
 # 1. Setup the Password Hasher (Using bcrypt with 12 rounds as required by NSR-R4)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -63,10 +63,7 @@ from app.services.auth_service import (
 )
 
 
-router = APIRouter(
-    prefix="/api/auth",
-    tags=["Auth"],
-)
+router = APIRouter()
 
 
 def _enforce_auth_rate_limit(request: Request) -> None:
