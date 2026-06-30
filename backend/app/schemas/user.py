@@ -22,3 +22,7 @@ class UserRegistration(BaseModel):
         min_length=12, 
         description="Password must be at least 12 characters long."
     )
+    
+class UserLogin(BaseModel):
+    email: EmailStr = Field(..., description="User's email address")
+    password: str = Field(..., description="User's password")
