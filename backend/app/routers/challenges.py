@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import os
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -29,8 +30,11 @@ from app.schemas.challenge_schema import (
 )
 from app.schemas.resource_schema import ResourceResponse
 from app.services.auth_service import (
+    SECRET_KEY,
     _user_role_name,
     assert_owns_resource,
+    check_fixed_window_rate_limit,
+    get_client_ip,
     get_current_user_from_request,
     record_audit_event,
     require_organiser,
@@ -48,18 +52,69 @@ challenges_router = APIRouter(
     tags=["Challenges"],
 )
 
+FLAG_HASH_PREFIX = "hmac-sha256:"
+FLAG_SUBMISSION_RATE_LIMIT = int(os.getenv("FLAG_SUBMISSION_RATE_LIMIT", "20"))
+
 
 def _normalize_flag(value: str) -> str:
     return value.strip()
 
 
-def _hash_flag(flag: str) -> str:
-    return hashlib.sha256(_normalize_flag(flag).encode("utf-8")).hexdigest()
+def _hash_flag(flag: str, event_id: uuid.UUID) -> str:
+    payload = f"{event_id}:{_normalize_flag(flag)}".encode("utf-8")
+    digest = hmac.new(
+        SECRET_KEY.encode("utf-8"),
+        payload,
+        hashlib.sha256,
+    ).hexdigest()
+    return f"{FLAG_HASH_PREFIX}{digest}"
 
 
-def _verify_flag(submitted: str, stored_hash: str) -> bool:
-    computed = _hash_flag(submitted)
-    return hmac.compare_digest(computed, stored_hash)
+def _verify_flag(
+    submitted: str,
+    stored_hash: str,
+    event_id: uuid.UUID,
+) -> bool:
+    if stored_hash.startswith(FLAG_HASH_PREFIX):
+        computed = _hash_flag(submitted, event_id)
+        return hmac.compare_digest(computed, stored_hash)
+
+    legacy_hash = hashlib.sha256(_normalize_flag(submitted).encode("utf-8")).hexdigest()
+    return hmac.compare_digest(legacy_hash, stored_hash)
+
+
+def _enforce_submission_rate_limit(
+    request: Request,
+    db: Session,
+    user_id: uuid.UUID,
+) -> None:
+    identifier = f"{get_client_ip(request)}:{user_id}"
+    if check_fixed_window_rate_limit(
+        namespace="flag_submission",
+        identifier=identifier,
+        limit=FLAG_SUBMISSION_RATE_LIMIT,
+        window_seconds=60,
+    ):
+        return
+
+    try:
+        record_audit_event(
+            db,
+            action_type="flag_submission_rate_limited",
+            result="failure",
+            request=request,
+            actor_user_id=user_id,
+            resource_type="user",
+            resource_id=str(user_id),
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail="Too many flag submissions. Try again later.",
+    )
 
 
 @event_challenges_router.get("", response_model=list[ChallengeResponse])
@@ -139,7 +194,7 @@ def create_event_challenge(
             event_id=event_id,
             title=body.title,
             description=body.description,
-            flag_hash=_hash_flag(body.flag),
+            flag_hash=_hash_flag(body.flag, event_id),
             points=body.points,
         )
         record_audit_event(
@@ -224,6 +279,8 @@ def submit_flag(
             detail="Only participant accounts can submit flags.",
         )
 
+    _enforce_submission_rate_limit(request, db, user.user_id)
+
     challenge = get_challenge_by_id(db, challenge_id)
     if challenge is None or not challenge.is_active:
         raise HTTPException(
@@ -257,7 +314,11 @@ def submit_flag(
             challenge.event_id,
         )
 
-    is_correct = _verify_flag(body.submitted_flag, challenge.flag_hash)
+    is_correct = _verify_flag(
+        body.submitted_flag,
+        challenge.flag_hash,
+        challenge.event_id,
+    )
     score_awarded = 0
     message = "Incorrect flag."
 

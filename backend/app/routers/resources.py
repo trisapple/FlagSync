@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.repositories.event_repository import get_event_by_id
 from app.repositories.resource_repository import (
+    count_user_resources,
     create_resource,
     delete_resource,
     get_resource_by_id,
@@ -49,6 +50,7 @@ MAX_FILE_BYTES = int(os.getenv("RESOURCE_MAX_FILE_BYTES", str(50 * 1024 * 1024))
 USER_QUOTA_BYTES = int(
     os.getenv("RESOURCE_USER_QUOTA_BYTES", str(500 * 1024 * 1024)),
 )
+USER_QUOTA_FILE_COUNT = int(os.getenv("RESOURCE_USER_QUOTA_FILE_COUNT", "100"))
 
 _SAFE_FILENAME_PATTERN = re.compile(r"[^A-Za-z0-9._\- ]")
 
@@ -140,6 +142,15 @@ async def upload_event_resource(
             detail=(
                 f"Upload would exceed your "
                 f"{USER_QUOTA_BYTES // (1024 * 1024)} MB storage quota."
+            ),
+        )
+
+    current_file_count = count_user_resources(db, user.user_id)
+    if current_file_count >= USER_QUOTA_FILE_COUNT:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=(
+                f"Upload would exceed your {USER_QUOTA_FILE_COUNT} file storage quota."
             ),
         )
 
