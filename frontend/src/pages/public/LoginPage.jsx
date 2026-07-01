@@ -43,8 +43,11 @@ function LoginPage() {
           returnTo: location.state?.returnTo,
         },
       });
-    } catch {
-      setFeedback({ type: "error", text: "Invalid email or password." });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error.message,
+      });
     } finally {
       setIsSubmitting(false);
     }
