@@ -47,8 +47,7 @@ def get_leaderboard(
             user_id=user.user_id,
         )
         is_registrant = (
-            registration is not None
-            and registration.registration_status != "cancelled"
+            registration is not None and registration.registration_status != "cancelled"
         )
         if not (is_organiser_owner or is_registrant):
             raise HTTPException(

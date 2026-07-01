@@ -25,9 +25,7 @@ def list_events(
 
 def list_published_events(db: Session) -> list[Event]:
     statement = (
-        select(Event)
-        .where(Event.status == "published")
-        .order_by(Event.start_date)
+        select(Event).where(Event.status == "published").order_by(Event.start_date)
     )
     return list(db.scalars(statement).all())
 

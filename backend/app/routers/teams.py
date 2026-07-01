@@ -169,9 +169,7 @@ def create_team_for_event(
         )
 
         active_count = count_active_registrations(db, event_id)
-        capacity_hit = (
-            event.capacity is not None and active_count >= event.capacity
-        )
+        capacity_hit = event.capacity is not None and active_count >= event.capacity
         target_status = "waitlisted" if capacity_hit else "registered"
 
         if registration is None:
@@ -278,9 +276,7 @@ def join_team_by_code(
         )
 
         active_count = count_active_registrations(db, team.event_id)
-        capacity_hit = (
-            event.capacity is not None and active_count >= event.capacity
-        )
+        capacity_hit = event.capacity is not None and active_count >= event.capacity
         target_status = "waitlisted" if capacity_hit else "registered"
 
         if registration is None:

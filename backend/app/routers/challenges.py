@@ -198,10 +198,7 @@ def list_challenge_files(
                 event_id=challenge.event_id,
                 user_id=user.user_id,
             )
-            if (
-                registration is None
-                or registration.registration_status == "cancelled"
-            ):
+            if registration is None or registration.registration_status == "cancelled":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Register for the event to view challenge files.",

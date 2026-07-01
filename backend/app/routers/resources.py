@@ -130,9 +130,7 @@ async def upload_event_resource(
     if file_size > MAX_FILE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=(
-                f"File exceeds the {MAX_FILE_BYTES // (1024 * 1024)} MB limit."
-            ),
+            detail=(f"File exceeds the {MAX_FILE_BYTES // (1024 * 1024)} MB limit."),
         )
 
     current_usage = sum_user_storage_bytes(db, user.user_id)

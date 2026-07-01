@@ -9,11 +9,7 @@ from app.models.team_member import TeamMember
 
 
 def list_teams_for_event(db: Session, event_id: uuid.UUID) -> list[Team]:
-    statement = (
-        select(Team)
-        .where(Team.event_id == event_id)
-        .order_by(Team.created_at)
-    )
+    statement = select(Team).where(Team.event_id == event_id).order_by(Team.created_at)
     return list(db.scalars(statement).all())
 
 
