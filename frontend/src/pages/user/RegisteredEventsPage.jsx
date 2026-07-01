@@ -89,6 +89,7 @@ function RegisteredEventsPage() {
 
   useEffect(() => {
     if (!sessionUser || !canRegisterForEvents(sessionUser.role)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoading(false);
       return;
     }

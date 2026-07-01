@@ -68,6 +68,7 @@ function EditEventPage() {
   }, [eventId, navigate, location.pathname]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchEvent();
   }, [fetchEvent]);
 

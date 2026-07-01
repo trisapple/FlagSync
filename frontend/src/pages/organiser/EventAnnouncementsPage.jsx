@@ -67,6 +67,7 @@ function EventAnnouncementsPage() {
 
   useEffect(() => {
     if (!sessionUser || !isOrganiser) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAll();
   }, [fetchAll, sessionUser, isOrganiser]);
 

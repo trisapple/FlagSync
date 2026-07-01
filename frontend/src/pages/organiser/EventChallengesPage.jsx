@@ -41,8 +41,8 @@ function ChallengeFilesEditor({ eventId, challengeId, onError }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
     fetchFiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challengeId]);
 
   async function handleUpload(event) {
@@ -186,6 +186,7 @@ function EventChallengesPage() {
   }, [eventId, navigate, location.pathname]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAll();
   }, [fetchAll]);
 
