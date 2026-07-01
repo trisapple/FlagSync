@@ -628,14 +628,30 @@
   text-align: center;
 }
 
-.auth-switch a {
+.auth-switch a,
+.auth-switch-link {
   color: var(--public-accent);
   font-weight: 800;
   text-decoration: none;
 }
 
-.auth-switch a:hover {
+.auth-switch a:hover,
+.auth-switch-link:hover:not(:disabled) {
   text-decoration: underline;
+}
+
+.auth-switch-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.auth-switch-link:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .register-main {

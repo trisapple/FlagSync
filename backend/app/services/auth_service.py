@@ -587,6 +587,21 @@ def create_login_otp(user_id: uuid.UUID) -> tuple[str, str]:
     return intent_id, otp
 
 
+def get_login_otp_user_id(intent_id: str) -> uuid.UUID | None:
+    raw = _peek_temporary_value("login_otp", _fallback_login_otps, intent_id)
+    if raw is None:
+        return None
+    try:
+        data = json.loads(raw)
+        return uuid.UUID(data["user_id"])
+    except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+        return None
+
+
+def invalidate_login_otp(intent_id: str) -> None:
+    _pop_temporary_value("login_otp", _fallback_login_otps, intent_id)
+
+
 def consume_login_otp(intent_id: str, otp: str) -> LoginOtpResult:
     raw = _peek_temporary_value(
         "login_otp",

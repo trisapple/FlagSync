@@ -22,6 +22,7 @@ from app.schemas.auth_schema import (
     MessageResponse,
     RegisterRequest,
     RegistrationChallengeResponse,
+    ResendLoginOtpRequest,
     ResendVerificationRequest,
     UpdateProfileRequest,
     VerifyEmailRequest,
@@ -48,8 +49,10 @@ from app.services.auth_service import (
     get_client_ip,
     get_current_auth_context,
     get_current_user_from_request,
+    get_login_otp_user_id,
     get_password_hash,
     get_user_auth_payload,
+    invalidate_login_otp,
     is_account_locked,
     normalize_email,
     record_audit_event,
@@ -439,6 +442,58 @@ def verify_login_otp(
     return AuthResponse(
         message="Sign-in successful",
         user=AuthUserResponse(**get_user_auth_payload(user)),
+    )
+
+
+@router.post("/login/resend-otp", response_model=LoginInitiateResponse)
+def resend_login_otp(
+    request: Request,
+    body: ResendLoginOtpRequest,
+    db: Session = Depends(get_db),
+) -> LoginInitiateResponse:
+    _enforce_auth_rate_limit(request)
+
+    user_id = get_login_otp_user_id(body.login_intent_id)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Session expired or invalid. Please sign in again.",
+        )
+
+    user = get_user_by_id(db, user_id)
+    if user is None or user.account_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Session expired or invalid. Please sign in again.",
+        )
+
+    invalidate_login_otp(body.login_intent_id)
+
+    intent_id, otp = create_login_otp(user.user_id)
+    email_sent = send_login_otp_email(
+        to_email=user.email,
+        otp=otp,
+        display_name=user.display_name,
+    )
+
+    try:
+        record_audit_event(
+            db,
+            action_type="login_otp_sent",
+            result="success" if email_sent else "failure",
+            request=request,
+            actor_user_id=user.user_id,
+            resource_type="user",
+            resource_id=str(user.user_id),
+            details={"trigger": "resend_request"},
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+    return LoginInitiateResponse(
+        message="A new verification code has been sent to your email.",
+        login_intent_id=intent_id,
     )
 
 

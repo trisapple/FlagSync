@@ -124,6 +124,10 @@ class LoginOtpRequest(BaseModel):
     otp: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
 
 
+class ResendLoginOtpRequest(BaseModel):
+    login_intent_id: str = Field(min_length=16, max_length=128)
+
+
 class MessageResponse(BaseModel):
     message: str
     verification_token: str | None = None
