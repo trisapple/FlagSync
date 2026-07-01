@@ -421,7 +421,7 @@ def is_password_breached(password: str) -> bool:
 def validate_password_policy(password: str) -> None:
     if len(password) < 12:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Password must be at least 12 characters long",
         )
 
@@ -433,13 +433,13 @@ def validate_password_policy(password: str) -> None:
     ]
     if not all(checks):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Password must include uppercase, lowercase, number, and symbol characters",
         )
 
     if is_password_breached(password):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Password appears in a known breached password list",
         )
 
@@ -585,6 +585,21 @@ def create_login_otp(user_id: uuid.UUID) -> tuple[str, str]:
         LOGIN_OTP_TTL_SECONDS,
     )
     return intent_id, otp
+
+
+def get_login_otp_user_id(intent_id: str) -> uuid.UUID | None:
+    raw = _peek_temporary_value("login_otp", _fallback_login_otps, intent_id)
+    if raw is None:
+        return None
+    try:
+        data = json.loads(raw)
+        return uuid.UUID(data["user_id"])
+    except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+        return None
+
+
+def invalidate_login_otp(intent_id: str) -> None:
+    _pop_temporary_value("login_otp", _fallback_login_otps, intent_id)
 
 
 def consume_login_otp(intent_id: str, otp: str) -> LoginOtpResult:

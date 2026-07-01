@@ -27,7 +27,7 @@ def _validate_display_name(value: str) -> str:
 
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
-    password: str = Field(min_length=8, max_length=255)
+    password: str = Field(max_length=255)
 
     @field_validator("email")
     @classmethod
@@ -126,6 +126,10 @@ class LoginInitiateResponse(BaseModel):
 class LoginOtpRequest(BaseModel):
     login_intent_id: str = Field(min_length=16, max_length=128)
     otp: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
+
+
+class ResendLoginOtpRequest(BaseModel):
+    login_intent_id: str = Field(min_length=16, max_length=128)
 
 
 class MessageResponse(BaseModel):

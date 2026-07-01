@@ -43,11 +43,8 @@ function LoginPage() {
           returnTo: location.state?.returnTo,
         },
       });
-    } catch (loginError) {
-      setFeedback({
-        type: "error",
-        text: loginError.message || "Unable to log in. Please try again.",
-      });
+    } catch {
+      setFeedback({ type: "error", text: "Invalid email or password." });
     } finally {
       setIsSubmitting(false);
     }

@@ -16,6 +16,13 @@ export async function verifyLoginOtp({ loginIntentId, otp }) {
   return response.data;
 }
 
+export async function resendLoginOtp(loginIntentId) {
+  const response = await apiClient.post(`${AUTH_BASE_PATH}/login/resend-otp`, {
+    login_intent_id: loginIntentId,
+  });
+  return response.data;
+}
+
 export async function getRegistrationChallenge() {
   const response = await apiClient.get(`${AUTH_BASE_PATH}/register/challenge`);
   return response.data;
