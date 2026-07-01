@@ -1,13 +1,17 @@
+import os
 import secrets
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.repositories.audit_log_repository import get_audit_logs_paginated
+from app.repositories.audit_log_repository import (
+    count_audit_logs_before,
+    get_audit_logs_paginated,
+)
 from app.repositories.role_repository import get_role_by_name
 from app.repositories.user_repository import (
     count_active_administrators,
@@ -24,7 +28,11 @@ from app.schemas.admin_schema import (
     UpdateUserRoleRequest,
     UpdateUserStatusRequest,
 )
-from app.schemas.audit_log_schema import AuditLogResponse, AuditLogsListResponse
+from app.schemas.audit_log_schema import (
+    AuditLogResponse,
+    AuditLogsListResponse,
+    AuditRetentionResponse,
+)
 from app.services.auth_service import (
     get_password_hash,
     record_audit_event,
@@ -35,6 +43,8 @@ router = APIRouter(
     prefix="/api/admin",
     tags=["Admin"],
 )
+
+AUDIT_LOG_RETENTION_DAYS = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "90"))
 
 
 @router.get("/users", response_model=AdminUsersListResponse)
@@ -331,4 +341,27 @@ def list_admin_audit_logs(
     return AuditLogsListResponse(
         items=[AuditLogResponse.model_validate(log) for log in logs],
         total=total,
+    )
+
+
+@router.get("/audit-logs/retention", response_model=AuditRetentionResponse)
+def get_audit_log_retention_status(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> AuditRetentionResponse:
+    require_roles(request, db, {"administrator"})
+    cutoff = datetime.now(timezone.utc) - timedelta(days=AUDIT_LOG_RETENTION_DAYS)
+
+    try:
+        eligible_count = count_audit_logs_before(db, cutoff)
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to retrieve audit retention status",
+        )
+
+    return AuditRetentionResponse(
+        retention_days=AUDIT_LOG_RETENTION_DAYS,
+        archive_eligible_before=cutoff,
+        archive_eligible_count=eligible_count,
     )

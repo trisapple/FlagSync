@@ -38,6 +38,7 @@ ACCESS_TOKEN_MINUTES = int(os.getenv("ACCESS_TOKEN_MINUTES", "30"))
 MAX_LOGIN_ATTEMPTS = int(os.getenv("MAX_LOGIN_ATTEMPTS", "5"))
 LOCKOUT_TIME_SECONDS = int(os.getenv("LOCKOUT_TIME_SECONDS", "900"))
 AUTH_RATE_LIMIT_PER_MINUTE = int(os.getenv("AUTH_RATE_LIMIT_PER_MINUTE", "10"))
+PASSWORD_RESET_TTL_SECONDS = int(os.getenv("PASSWORD_RESET_TTL_SECONDS", "900"))
 REGISTRATION_CHALLENGE_TTL_SECONDS = int(
     os.getenv("REGISTRATION_CHALLENGE_TTL_SECONDS", "600"),
 )
@@ -49,6 +50,10 @@ EMAIL_VERIFICATION_REQUIRED = _parse_bool(
 )
 EXPOSE_DEV_VERIFICATION_TOKEN = _parse_bool(
     os.getenv("EXPOSE_DEV_VERIFICATION_TOKEN"),
+    default=False,
+)
+EXPOSE_DEV_PASSWORD_RESET_TOKEN = _parse_bool(
+    os.getenv("EXPOSE_DEV_PASSWORD_RESET_TOKEN"),
     default=False,
 )
 ENABLE_HIBP_PASSWORD_CHECK = _parse_bool(
@@ -130,9 +135,11 @@ def _build_redis_client() -> redis.Redis | None:
 redis_client = _build_redis_client()
 _fallback_lockouts: dict[str, tuple[int, float]] = {}
 _fallback_rate_limits: dict[str, tuple[int, float]] = {}
+_fallback_generic_rate_limits: dict[str, tuple[int, float]] = {}
 _fallback_challenges: dict[str, tuple[str, float]] = {}
 _fallback_revoked_tokens: dict[str, tuple[str, float]] = {}
 _fallback_email_verifications: dict[str, tuple[str, float]] = {}
+_fallback_password_resets: dict[str, tuple[str, float]] = {}
 _fallback_login_otps: dict[str, tuple[str, float]] = {}
 
 
@@ -271,28 +278,44 @@ def _replace_temporary_value(
     return False
 
 
-def check_auth_rate_limit(client_ip: str) -> bool:
-    window_seconds = 60
-    bucket = int(time.time() // window_seconds)
-    rate_key = f"auth:{client_ip}:{bucket}"
+def check_fixed_window_rate_limit(
+    *,
+    namespace: str,
+    identifier: str,
+    limit: int,
+    window_seconds: int,
+) -> bool:
+    if limit <= 0:
+        return False
 
+    bucket = int(time.time() // window_seconds)
+    rate_key = f"{namespace}:{identifier}:{bucket}"
     if redis_client is not None:
         try:
             attempts = redis_client.incr(f"rate_limit:{rate_key}")
             if attempts == 1:
                 redis_client.expire(f"rate_limit:{rate_key}", window_seconds)
-            return int(attempts) <= AUTH_RATE_LIMIT_PER_MINUTE
+            return int(attempts) <= limit
         except redis.RedisError:
             pass
 
-    attempts, expires_at = _fallback_rate_limits.get(rate_key, (0, 0.0))
+    attempts, expires_at = _fallback_generic_rate_limits.get(rate_key, (0, 0.0))
     if time.monotonic() > expires_at:
         attempts = 0
         expires_at = time.monotonic() + window_seconds
 
     attempts += 1
-    _fallback_rate_limits[rate_key] = (attempts, expires_at)
-    return attempts <= AUTH_RATE_LIMIT_PER_MINUTE
+    _fallback_generic_rate_limits[rate_key] = (attempts, expires_at)
+    return attempts <= limit
+
+
+def check_auth_rate_limit(client_ip: str) -> bool:
+    return check_fixed_window_rate_limit(
+        namespace="auth",
+        identifier=client_ip,
+        limit=AUTH_RATE_LIMIT_PER_MINUTE,
+        window_seconds=60,
+    )
 
 
 PUZZLE_TYPES = ("base64", "hex", "rot13", "reverse", "binary")
@@ -404,11 +427,17 @@ def is_password_breached(password: str) -> bool:
     )
     prefix = password_hash[:5]
     suffix = password_hash[5:]
-    response = requests.get(
-        f"https://api.pwnedpasswords.com/range/{prefix}",
-        timeout=3,
-    )
-    response.raise_for_status()
+    try:
+        response = requests.get(
+            f"https://api.pwnedpasswords.com/range/{prefix}",
+            timeout=3,
+        )
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to validate password breach status",
+        ) from exc
 
     for line in response.text.splitlines():
         returned_suffix = line.split(":", maxsplit=1)[0]
@@ -569,6 +598,19 @@ def create_email_verification_token(user_id: uuid.UUID) -> str:
     return token
 
 
+def create_password_reset_token(user_id: uuid.UUID) -> str:
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    _store_temporary_value(
+        "password_reset",
+        _fallback_password_resets,
+        token_hash,
+        str(user_id),
+        PASSWORD_RESET_TTL_SECONDS,
+    )
+    return token
+
+
 def create_login_otp(user_id: uuid.UUID) -> tuple[str, str]:
     intent_id = secrets.token_urlsafe(32)
     otp = "".join(secrets.choice("0123456789") for _ in range(6))
@@ -585,6 +627,21 @@ def create_login_otp(user_id: uuid.UUID) -> tuple[str, str]:
         LOGIN_OTP_TTL_SECONDS,
     )
     return intent_id, otp
+
+
+def get_login_otp_user_id(intent_id: str) -> uuid.UUID | None:
+    raw = _peek_temporary_value("login_otp", _fallback_login_otps, intent_id)
+    if raw is None:
+        return None
+    try:
+        data = json.loads(raw)
+        return uuid.UUID(data["user_id"])
+    except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+        return None
+
+
+def invalidate_login_otp(intent_id: str) -> None:
+    _pop_temporary_value("login_otp", _fallback_login_otps, intent_id)
 
 
 def consume_login_otp(intent_id: str, otp: str) -> LoginOtpResult:
@@ -641,6 +698,22 @@ def consume_email_verification_token(token: str) -> uuid.UUID | None:
     user_id = _pop_temporary_value(
         "email_verification",
         _fallback_email_verifications,
+        token_hash,
+    )
+    if user_id is None:
+        return None
+
+    try:
+        return uuid.UUID(user_id)
+    except ValueError:
+        return None
+
+
+def consume_password_reset_token(token: str) -> uuid.UUID | None:
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    user_id = _pop_temporary_value(
+        "password_reset",
+        _fallback_password_resets,
         token_hash,
     )
     if user_id is None:
@@ -732,19 +805,40 @@ def get_current_user_from_request(
     return get_current_auth_context(request, db).user
 
 
+def _user_role_name(user: User) -> str | None:
+    return user.role.role_name if user.role is not None else None
+
+
 def require_roles(
     request: Request,
     db: Session,
     allowed_roles: set[str],
 ) -> User:
     user = get_current_user_from_request(request, db)
-    role_name = user.role.role_name if user.role is not None else None
-    if role_name not in allowed_roles:
+    if _user_role_name(user) not in allowed_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this resource",
         )
     return user
+
+
+def require_organiser(request: Request, db: Session) -> User:
+    user = get_current_user_from_request(request, db)
+    if _user_role_name(user) != "organiser":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organiser access required",
+        )
+    return user
+
+
+def assert_owns_resource(user: User, owner_id: uuid.UUID) -> None:
+    if user.user_id != owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to modify this resource",
+        )
 
 
 def get_user_auth_payload(user: User) -> dict[str, Any]:
@@ -753,6 +847,9 @@ def get_user_auth_payload(user: User) -> dict[str, Any]:
         "email": user.email,
         "display_name": user.display_name,
         "role_name": user.role.role_name if user.role is not None else None,
+        "account_status": user.account_status,
+        "email_verified": user.email_verified,
+        "created_at": user.created_at,
     }
 
 
@@ -819,7 +916,9 @@ def apply_no_store_headers(response: Response) -> None:
 def clear_ephemeral_security_state() -> None:
     _fallback_lockouts.clear()
     _fallback_rate_limits.clear()
+    _fallback_generic_rate_limits.clear()
     _fallback_challenges.clear()
     _fallback_revoked_tokens.clear()
     _fallback_email_verifications.clear()
+    _fallback_password_resets.clear()
     _fallback_login_otps.clear()

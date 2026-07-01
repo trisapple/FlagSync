@@ -1,13 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PublicLayout from "../../components/public/PublicLayout";
 import { useSessionUser } from "../../hooks/useSessionUser";
+import { listPublishedEvents } from "../../services/eventService";
 import { getDashboardPath } from "../../utils/roleRoutes";
-
-const events = [
-  { type: "CTF", name: "Cloud Security Sprint", detail: "Starts in 6 days" },
-  { type: "HCK", name: "Build for Good", detail: "Registration open" },
-  { type: "CTF", name: "Summer Cyber Clash", detail: "128 teams joined" },
-];
 
 const features = [
   {
@@ -30,9 +26,57 @@ const features = [
   },
 ];
 
+function eventTypeBadge(type) {
+  if (type === "ctf") return "CTF";
+  if (type === "hackathon") return "HCK";
+  return (type ?? "EVT").slice(0, 3).toUpperCase();
+}
+
+function eventDetail(event) {
+  const now = Date.now();
+  const start = new Date(event.start_date).getTime();
+  const diffMs = start - now;
+  const dayMs = 1000 * 60 * 60 * 24;
+
+  if (diffMs > 0) {
+    const days = Math.ceil(diffMs / dayMs);
+    if (days === 1) return "Starts tomorrow";
+    if (days <= 30) return `Starts in ${days} days`;
+    return new Date(event.start_date).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  const end = new Date(event.end_date).getTime();
+  if (end > now) return "Happening now";
+  return "Ended";
+}
+
 function HomePage() {
   const sessionUser = useSessionUser();
   const dashboardPath = getDashboardPath(sessionUser?.role);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+
+  useEffect(() => {
+    let ignore = false;
+    listPublishedEvents()
+      .then((events) => {
+        if (ignore) return;
+        const now = Date.now();
+        const upcoming = events
+          .filter((event) => new Date(event.start_date).getTime() > now)
+          .slice(0, 3);
+        setUpcomingEvents(upcoming);
+      })
+      .catch(() => {
+        if (!ignore) setUpcomingEvents([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   return (
     <PublicLayout>
@@ -89,18 +133,31 @@ function HomePage() {
                 <span className="home-live-label">Live platform</span>
               </div>
               <div className="home-event-list">
-                {events.map((event) => (
-                  <article className="home-event-row" key={event.name}>
-                    <span className="home-event-icon" aria-hidden="true">
-                      {event.type}
-                    </span>
+                {upcomingEvents.length > 0 ? (
+                  upcomingEvents.map((event) => (
+                    <Link
+                      className="home-event-row"
+                      key={event.event_id}
+                      to={`/events/${event.event_id}`}
+                    >
+                      <span className="home-event-icon" aria-hidden="true">
+                        {eventTypeBadge(event.event_type)}
+                      </span>
+                      <div>
+                        <strong>{event.event_name}</strong>
+                        <p>{eventDetail(event)}</p>
+                      </div>
+                      <span className="home-event-meta">View -&gt;</span>
+                    </Link>
+                  ))
+                ) : (
+                  <article className="home-event-row">
                     <div>
-                      <strong>{event.name}</strong>
-                      <p>{event.detail}</p>
+                      <strong>No upcoming events yet</strong>
+                      <p>Organisers haven't published anything new.</p>
                     </div>
-                    <span className="home-event-meta">View -&gt;</span>
                   </article>
-                ))}
+                )}
               </div>
             </div>
           </div>

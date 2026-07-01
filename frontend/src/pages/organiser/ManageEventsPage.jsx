@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
-import { availableEvents } from "../../data/previewEvents";
-import { getSessionUser } from "../../utils/authSession";
+import { useSessionUser } from "../../hooks/useSessionUser";
+import { deleteEvent, listMyEvents } from "../../services/eventService";
+import { clearSessionUser } from "../../utils/authSession";
 import {
   formatEventDate,
   formatEventFormat,
   formatEventType,
-  getRegistrationStatus,
   getTeamLabel,
 } from "../../utils/eventPresentation";
 import { getDashboardPath } from "../../utils/roleRoutes";
@@ -18,54 +18,108 @@ function getRoleName(role) {
 }
 
 function ManageEventsPage() {
+  const navigate = useNavigate();
   const location = useLocation();
-  const sessionUser = getSessionUser();
+  const sessionUser = useSessionUser();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [events, setEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [feedback, setFeedback] = useState(() =>
+    location.state?.message
+      ? {
+          type: location.state.type ?? "success",
+          text: location.state.message,
+        }
+      : { type: "", text: "" },
+  );
 
   const roleName = getRoleName(sessionUser?.role);
   const dashboardPath = getDashboardPath(roleName);
   const isOrganiser = dashboardPath === "/organiser/dashboard";
 
-  const ownedEvents = useMemo(() => {
-    if (!sessionUser) return [];
-
-    return availableEvents.filter((event) => {
-      if (sessionUser.user_id) {
-        return event.organiser_id === sessionUser.user_id;
+  const fetchEvents = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await listMyEvents();
+      setEvents(data);
+    } catch (error) {
+      if (/authentication required/i.test(error.message)) {
+        clearSessionUser();
+        navigate("/login", {
+          replace: true,
+          state: { returnTo: location.pathname },
+        });
+        return;
       }
+      setFeedback({
+        type: "error",
+        text: error.message || "Unable to load events.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate, location.pathname]);
 
-      return (
-        sessionUser.display_name &&
-        event.organiser_name.toLowerCase() ===
-          sessionUser.display_name.trim().toLowerCase()
-      );
-    });
-  }, [sessionUser]);
+  useEffect(() => {
+    if (!sessionUser || !isOrganiser) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchEvents();
+  }, [fetchEvents, sessionUser, isOrganiser]);
 
   const filteredEvents = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return ownedEvents.filter((event) => {
+    return events.filter((event) => {
       const matchesQuery =
         !normalizedQuery ||
         event.event_name.toLowerCase().includes(normalizedQuery);
-      const matchesStatus = status === "all" || event.status === status;
+      const matchesStatus =
+        statusFilter === "all" || event.status === statusFilter;
       return matchesQuery && matchesStatus;
     });
-  }, [ownedEvents, query, status]);
+  }, [events, query, statusFilter]);
 
   if (!sessionUser) {
-    return <Navigate to="/login" state={{ returnTo: location.pathname }} replace />;
+    return (
+      <Navigate
+        to="/login"
+        state={{ returnTo: location.pathname }}
+        replace
+      />
+    );
   }
 
   if (!isOrganiser) {
     return <Navigate to={dashboardPath ?? "/"} replace />;
   }
 
-  const publishedCount = ownedEvents.filter(
+  const publishedCount = events.filter(
     (event) => event.status === "published",
   ).length;
-  const draftCount = ownedEvents.filter((event) => event.status === "draft").length;
+  const draftCount = events.filter((event) => event.status === "draft").length;
+
+  async function handleDelete(eventId, eventName) {
+    if (
+      !window.confirm(
+        `Delete "${eventName}"? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteEvent(eventId);
+      setFeedback({
+        type: "success",
+        text: `Event "${eventName}" deleted.`,
+      });
+      fetchEvents();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error.message || "Unable to delete event.",
+      });
+    }
+  }
 
   return (
     <div className="dashboard-shell">
@@ -78,15 +132,27 @@ function ManageEventsPage() {
             <h1>Manage events</h1>
             <p>Review the events owned by your organiser account.</p>
           </div>
-          <button type="button" disabled title="Requires the event creation API">
+          <button
+            type="button"
+            onClick={() => navigate("/organiser/events/new")}
+          >
             Create event
           </button>
         </header>
 
+        {feedback.text && (
+          <p
+            className={`login-status login-status-${feedback.type}`}
+            role={feedback.type === "error" ? "alert" : "status"}
+          >
+            {feedback.text}
+          </p>
+        )}
+
         <section className="manage-events-stats" aria-label="Event totals">
           <article>
             <span>Total events</span>
-            <strong>{ownedEvents.length}</strong>
+            <strong>{events.length}</strong>
           </article>
           <article>
             <span>Published</span>
@@ -114,8 +180,8 @@ function ManageEventsPage() {
               <label htmlFor="manage-event-status">Status</label>
               <select
                 id="manage-event-status"
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
               >
                 <option value="all">All statuses</option>
                 <option value="draft">Draft</option>
@@ -126,58 +192,90 @@ function ManageEventsPage() {
             </div>
           </div>
 
-          {filteredEvents.length > 0 ? (
+          {isLoading ? (
+            <div className="manage-events-empty">
+              <h2>Loading...</h2>
+            </div>
+          ) : filteredEvents.length > 0 ? (
             <div className="manage-events-list">
-              {filteredEvents.map((event) => {
-                const registrationStatus = getRegistrationStatus(event);
-                return (
-                  <article className="manage-event-row" key={event.event_id}>
-                    <div className="manage-event-primary">
-                      <div className="manage-event-labels">
-                        <span>{formatEventType(event.event_type)}</span>
-                        <span className={`manage-event-status-${event.status}`}>
-                          {event.status}
-                        </span>
-                      </div>
-                      <h2>{event.event_name}</h2>
-                      <p>{event.description}</p>
+              {filteredEvents.map((event) => (
+                <article className="manage-event-row" key={event.event_id}>
+                  <div className="manage-event-primary">
+                    <div className="manage-event-labels">
+                      <span>{formatEventType(event.event_type)}</span>
+                      <span className={`manage-event-status-${event.status}`}>
+                        {event.status}
+                      </span>
                     </div>
+                    <h2>{event.event_name}</h2>
+                    <p>{event.description}</p>
+                  </div>
 
-                    <dl>
-                      <div>
-                        <dt>Date</dt>
-                        <dd>{formatEventDate(event)}</dd>
-                      </div>
-                      <div>
-                        <dt>Format</dt>
-                        <dd>{formatEventFormat(event.event_format)}</dd>
-                      </div>
-                      <div>
-                        <dt>Team</dt>
-                        <dd>{getTeamLabel(event)}</dd>
-                      </div>
-                      <div>
-                        <dt>Registration</dt>
-                        <dd>{registrationStatus.label}</dd>
-                      </div>
-                    </dl>
-
-                    <div className="manage-event-actions">
-                      <Link to={`/events/${event.event_id}`}>View details</Link>
-                      <button type="button" disabled title="Requires the event update API">
-                        Edit event
-                      </button>
+                  <dl>
+                    <div>
+                      <dt>Date</dt>
+                      <dd>{formatEventDate(event)}</dd>
                     </div>
-                  </article>
-                );
-              })}
+                    <div>
+                      <dt>Format</dt>
+                      <dd>{formatEventFormat(event.event_format)}</dd>
+                    </div>
+                    <div>
+                      <dt>Team</dt>
+                      <dd>{getTeamLabel(event)}</dd>
+                    </div>
+                    <div>
+                      <dt>Status</dt>
+                      <dd>{event.status}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="manage-event-actions">
+                    <Link to={`/events/${event.event_id}`}>View details</Link>
+                    <Link to={`/organiser/events/${event.event_id}/edit`}>
+                      Edit
+                    </Link>
+                    <Link
+                      to={`/organiser/events/${event.event_id}/participants`}
+                    >
+                      Participants
+                    </Link>
+                    <Link
+                      to={`/organiser/events/${event.event_id}/announcements`}
+                    >
+                      Announcements
+                    </Link>
+                    <Link
+                      to={`/organiser/events/${event.event_id}/challenges`}
+                    >
+                      Challenges
+                    </Link>
+                    <Link
+                      to={`/organiser/events/${event.event_id}/analytics`}
+                    >
+                      Analytics
+                    </Link>
+                    <Link
+                      to={`/organiser/events/${event.event_id}/resources`}
+                    >
+                      Resources
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(event.event_id, event.event_name)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              ))}
             </div>
           ) : (
             <div className="manage-events-empty">
               <h2>No events found</h2>
               <p>
-                {ownedEvents.length === 0
-                  ? "No preview events belong to this organiser account."
+                {events.length === 0
+                  ? "Click \"Create event\" to add your first event."
                   : "Try a different search or status filter."}
               </p>
             </div>

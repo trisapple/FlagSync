@@ -20,18 +20,23 @@ from app.schemas.auth_schema import (
     LoginOtpRequest,
     LoginRequest,
     MessageResponse,
+    PasswordResetConfirmRequest,
+    PasswordResetRequest,
     RegisterRequest,
     RegistrationChallengeResponse,
+    ResendLoginOtpRequest,
     ResendVerificationRequest,
     UpdateProfileRequest,
     VerifyEmailRequest,
 )
 from app.services.email_service import (
     send_login_otp_email,
+    send_password_reset_email,
     send_verification_email,
 )
 from app.services.auth_service import (
     EMAIL_VERIFICATION_REQUIRED,
+    EXPOSE_DEV_PASSWORD_RESET_TOKEN,
     EXPOSE_DEV_VERIFICATION_TOKEN,
     LOCKOUT_TIME_SECONDS,
     MAX_LOGIN_ATTEMPTS,
@@ -41,15 +46,19 @@ from app.services.auth_service import (
     clear_failed_logins,
     consume_email_verification_token,
     consume_login_otp,
+    consume_password_reset_token,
     create_access_token,
     create_email_verification_token,
     create_login_otp,
+    create_password_reset_token,
     create_registration_challenge,
     get_client_ip,
     get_current_auth_context,
     get_current_user_from_request,
+    get_login_otp_user_id,
     get_password_hash,
     get_user_auth_payload,
+    invalidate_login_otp,
     is_account_locked,
     normalize_email,
     record_audit_event,
@@ -273,6 +282,97 @@ def verify_email(
     return MessageResponse(message="Email verified successfully")
 
 
+@router.post("/password-reset/request", response_model=MessageResponse)
+def request_password_reset(
+    request: Request,
+    body: PasswordResetRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    _enforce_auth_rate_limit(request)
+
+    generic_message = "If that email is registered, we've sent a password reset link."
+
+    email = normalize_email(body.email)
+    user = get_user_by_email(db, email)
+    if user is None or user.account_status != "active":
+        return MessageResponse(message=generic_message)
+
+    reset_token = create_password_reset_token(user.user_id)
+    email_sent = send_password_reset_email(
+        to_email=user.email,
+        token=reset_token,
+        display_name=user.display_name,
+    )
+
+    try:
+        record_audit_event(
+            db,
+            action_type="password_reset_requested",
+            result="success" if email_sent else "failure",
+            request=request,
+            actor_user_id=user.user_id,
+            resource_type="user",
+            resource_id=str(user.user_id),
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+    return MessageResponse(
+        message=generic_message,
+        reset_token=reset_token if EXPOSE_DEV_PASSWORD_RESET_TOKEN else None,
+    )
+
+
+@router.post("/password-reset/confirm", response_model=MessageResponse)
+def confirm_password_reset(
+    request: Request,
+    body: PasswordResetConfirmRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    _enforce_auth_rate_limit(request)
+    validate_password_policy(body.new_password)
+
+    user_id = consume_password_reset_token(body.token)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset link is invalid or expired",
+        )
+
+    user = get_user_by_id(db, user_id)
+    if user is None or user.account_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password reset link is invalid or expired",
+        )
+
+    try:
+        update_user_profile(
+            db,
+            user,
+            password_hash=get_password_hash(body.new_password),
+        )
+        record_audit_event(
+            db,
+            action_type="password_reset_completed",
+            result="success",
+            request=request,
+            actor_user_id=user.user_id,
+            resource_type="user",
+            resource_id=str(user.user_id),
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to reset password",
+        )
+
+    return MessageResponse(message="Password reset successful. Please sign in again.")
+
+
 @router.post("/login", response_model=LoginInitiateResponse)
 def login(
     request: Request,
@@ -439,6 +539,58 @@ def verify_login_otp(
     return AuthResponse(
         message="Sign-in successful",
         user=AuthUserResponse(**get_user_auth_payload(user)),
+    )
+
+
+@router.post("/login/resend-otp", response_model=LoginInitiateResponse)
+def resend_login_otp(
+    request: Request,
+    body: ResendLoginOtpRequest,
+    db: Session = Depends(get_db),
+) -> LoginInitiateResponse:
+    _enforce_auth_rate_limit(request)
+
+    user_id = get_login_otp_user_id(body.login_intent_id)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Session expired or invalid. Please sign in again.",
+        )
+
+    user = get_user_by_id(db, user_id)
+    if user is None or user.account_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Session expired or invalid. Please sign in again.",
+        )
+
+    invalidate_login_otp(body.login_intent_id)
+
+    intent_id, otp = create_login_otp(user.user_id)
+    email_sent = send_login_otp_email(
+        to_email=user.email,
+        otp=otp,
+        display_name=user.display_name,
+    )
+
+    try:
+        record_audit_event(
+            db,
+            action_type="login_otp_sent",
+            result="success" if email_sent else "failure",
+            request=request,
+            actor_user_id=user.user_id,
+            resource_type="user",
+            resource_id=str(user.user_id),
+            details={"trigger": "resend_request"},
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+    return LoginInitiateResponse(
+        message="A new verification code has been sent to your email.",
+        login_intent_id=intent_id,
     )
 
 

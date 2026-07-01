@@ -1,10 +1,6 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-
-const stats = [
-  { label: "Active events", value: "4", detail: "2 accepting registrations" },
-  { label: "Registrations", value: "386", detail: "+72 this week" },
-  { label: "Upcoming events", value: "3", detail: "Next event in 6 days" },
-];
+import { getOrganiserStats } from "../../services/eventService";
 
 const actions = [
   {
@@ -24,25 +20,45 @@ const actions = [
   },
 ];
 
-const activity = [
-  {
-    title: "New team registered",
-    description: "ByteBusters joined Summer Cyber Clash.",
-    time: "8 min ago",
-  },
-  {
-    title: "Registration milestone reached",
-    description: "SecureHack 2026 now has 100 participants.",
-    time: "3 hours ago",
-  },
-  {
-    title: "Event details updated",
-    description: "The challenge schedule was successfully published.",
-    time: "Yesterday",
-  },
-];
-
 function OrganiserDashboardPage() {
+  const [statsData, setStatsData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+    getOrganiserStats()
+      .then((data) => {
+        if (!ignore) setStatsData(data);
+      })
+      .catch(() => {
+        if (!ignore) setStatsData(null);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const stats = [
+    {
+      label: "Active events",
+      value: isLoading ? "—" : String(statsData?.active_events ?? 0),
+      detail: "Published and accepting participants",
+    },
+    {
+      label: "Registrations",
+      value: isLoading ? "—" : String(statsData?.total_registrations ?? 0),
+      detail: "Confirmed across all your events",
+    },
+    {
+      label: "Upcoming events",
+      value: isLoading ? "—" : String(statsData?.upcoming_events ?? 0),
+      detail: "Events yet to start",
+    },
+  ];
+
   return (
     <DashboardLayout
       role="Organiser"
@@ -51,7 +67,6 @@ function OrganiserDashboardPage() {
       description="Create memorable competitions, manage registrations, and follow every event from one place."
       stats={stats}
       actions={actions}
-      activity={activity}
     />
   );
 }

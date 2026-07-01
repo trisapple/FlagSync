@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PublicLayout from "../../components/public/PublicLayout";
-import { availableEvents } from "../../data/previewEvents";
+import { listPublishedEvents } from "../../services/eventService";
 import {
   formatEventDate,
   formatEventFormat,
@@ -16,24 +16,44 @@ function EventsPage() {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
   const [format, setFormat] = useState("all");
+  const [events, setEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    let ignore = false;
+    listPublishedEvents()
+      .then((data) => {
+        if (!ignore) setEvents(data);
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setErrorMessage(error.message || "Unable to load events.");
+        }
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const filteredEvents = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return availableEvents.filter((event) => {
-      if (event.status !== "published") return false;
-
+    return events.filter((event) => {
       const matchesQuery =
         !normalizedQuery ||
-        [event.event_name, event.organiser_name, event.description].some((value) =>
-          value.toLowerCase().includes(normalizedQuery),
+        [event.event_name, event.organiser_name ?? "", event.description ?? ""].some(
+          (value) => value.toLowerCase().includes(normalizedQuery),
         );
       const matchesType = type === "all" || event.event_type === type;
       const matchesFormat = format === "all" || event.event_format === format;
 
       return matchesQuery && matchesType && matchesFormat;
     });
-  }, [format, query, type]);
+  }, [events, format, query, type]);
 
   function clearFilters() {
     setQuery("");
@@ -104,8 +124,9 @@ function EventsPage() {
               <div>
                 <h2>Available events</h2>
                 <p>
-                  {filteredEvents.length} event
-                  {filteredEvents.length === 1 ? "" : "s"} found
+                  {isLoading
+                    ? "Loading..."
+                    : `${filteredEvents.length} event${filteredEvents.length === 1 ? "" : "s"} found`}
                 </p>
               </div>
               {(query || type !== "all" || format !== "all") && (
@@ -115,63 +136,78 @@ function EventsPage() {
               )}
             </div>
 
-            {filteredEvents.length > 0 ? (
+            {errorMessage && (
+              <p
+                className="events-empty-state"
+                role="alert"
+                style={{ color: "#dc2626" }}
+              >
+                {errorMessage}
+              </p>
+            )}
+
+            {!isLoading && !errorMessage && filteredEvents.length > 0 ? (
               <div className="events-grid">
                 {filteredEvents.map((event) => {
                   const dateBadge = getEventDateBadge(event.start_date);
                   const registrationStatus = getRegistrationStatus(event);
 
                   return (
-                  <article className="event-card" key={event.event_id}>
-                    <div className="event-card-top">
-                      <div className="event-date" aria-label={formatEventDate(event)}>
-                        <span>{dateBadge.month}</span>
-                        <strong>{dateBadge.day}</strong>
-                      </div>
-                      <div className="event-card-labels">
-                        <span className="event-type-label">
-                          {formatEventType(event.event_type)}
-                        </span>
-                        <span
-                          className={`event-status event-status-${registrationStatus.key}`}
+                    <article className="event-card" key={event.event_id}>
+                      <div className="event-card-top">
+                        <div
+                          className="event-date"
+                          aria-label={formatEventDate(event)}
                         >
-                          {registrationStatus.label}
-                        </span>
+                          <span>{dateBadge.month}</span>
+                          <strong>{dateBadge.day}</strong>
+                        </div>
+                        <div className="event-card-labels">
+                          <span className="event-type-label">
+                            {formatEventType(event.event_type)}
+                          </span>
+                          <span
+                            className={`event-status event-status-${registrationStatus.key}`}
+                          >
+                            {registrationStatus.label}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="event-card-body">
-                      <p className="event-organiser">
-                        Hosted by {event.organiser_name}
-                      </p>
-                      <h3>{event.event_name}</h3>
-                      <p className="event-description">{event.description}</p>
-                    </div>
+                      <div className="event-card-body">
+                        <p className="event-organiser">
+                          Hosted by {event.organiser_name ?? "an organiser"}
+                        </p>
+                        <h3>{event.event_name}</h3>
+                        <p className="event-description">{event.description}</p>
+                      </div>
 
-                    <dl className="event-details">
-                      <div>
-                        <dt>Format</dt>
-                        <dd>{formatEventFormat(event.event_format)}</dd>
-                      </div>
-                      <div>
-                        <dt>Date</dt>
-                        <dd>{formatEventDate(event)}</dd>
-                      </div>
-                      <div>
-                        <dt>Team</dt>
-                        <dd>{getTeamLabel(event)}</dd>
-                      </div>
-                    </dl>
+                      <dl className="event-details">
+                        <div>
+                          <dt>Format</dt>
+                          <dd>{formatEventFormat(event.event_format)}</dd>
+                        </div>
+                        <div>
+                          <dt>Date</dt>
+                          <dd>{formatEventDate(event)}</dd>
+                        </div>
+                        <div>
+                          <dt>Team</dt>
+                          <dd>{getTeamLabel(event)}</dd>
+                        </div>
+                      </dl>
 
-                    <div className="event-card-footer">
-                      <Link to={`/events/${event.event_id}`}>View event details</Link>
-                      <span aria-hidden="true">→</span>
-                    </div>
-                  </article>
+                      <div className="event-card-footer">
+                        <Link to={`/events/${event.event_id}`}>
+                          View event details
+                        </Link>
+                        <span aria-hidden="true">→</span>
+                      </div>
+                    </article>
                   );
                 })}
               </div>
-            ) : (
+            ) : !isLoading && !errorMessage ? (
               <div className="events-empty-state">
                 <span aria-hidden="true">⌕</span>
                 <h2>No matching events</h2>
@@ -180,7 +216,7 @@ function EventsPage() {
                   Clear all filters
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         </section>
       </main>

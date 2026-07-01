@@ -1,9 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import PublicLayout from "../../components/public/PublicLayout";
-import { availableEvents } from "../../data/previewEvents";
+import { listMyRegistrations } from "../../services/registrationService";
 import { getSessionUser } from "../../utils/authSession";
-import { getRegisteredEventIds } from "../../utils/eventRegistrationSession";
 import { canRegisterForEvents, getDashboardPath } from "../../utils/roleRoutes";
 import {
   formatEventDate,
@@ -21,8 +21,8 @@ function getDisplayRole(role) {
   return roleName.charAt(0).toUpperCase() + roleName.slice(1);
 }
 
-function RegisteredEventList({ events }) {
-  if (events.length === 0) {
+function RegisteredEventList({ registrations }) {
+  if (registrations.length === 0) {
     return (
       <div className="registered-events-empty">
         <span aria-hidden="true">F</span>
@@ -35,43 +35,46 @@ function RegisteredEventList({ events }) {
 
   return (
     <div className="registered-events-grid">
-      {events.map((event) => {
+      {registrations.map(({ registration_id, registration_status, event }) => {
         const dateBadge = getEventDateBadge(event.start_date);
         const registrationStatus = getRegistrationStatus(event);
 
         return (
-        <article className="registered-event-card" key={event.event_id}>
-          <div
-            className="registered-event-date"
-            aria-label={formatEventDate(event)}
-          >
-            <span>{dateBadge.month}</span>
-            <strong>{dateBadge.day}</strong>
-          </div>
-          <div className="registered-event-content">
-            <div className="registered-event-labels">
-              <span>{formatEventType(event.event_type)}</span>
-              <span>{registrationStatus.label}</span>
+          <article className="registered-event-card" key={registration_id}>
+            <div
+              className="registered-event-date"
+              aria-label={formatEventDate(event)}
+            >
+              <span>{dateBadge.month}</span>
+              <strong>{dateBadge.day}</strong>
             </div>
-            <p>Hosted by {event.organiser_name}</p>
-            <h2>{event.event_name}</h2>
-            <dl>
-              <div>
-                <dt>Date</dt>
-                <dd>{formatEventDate(event)}</dd>
+            <div className="registered-event-content">
+              <div className="registered-event-labels">
+                <span>{formatEventType(event.event_type)}</span>
+                <span>{registrationStatus.label}</span>
+                {registration_status === "waitlisted" && (
+                  <span>Waitlisted</span>
+                )}
               </div>
-              <div>
-                <dt>Format</dt>
-                <dd>{formatEventFormat(event.event_format)}</dd>
-              </div>
-              <div>
-                <dt>Team</dt>
-                <dd>{getTeamLabel(event)}</dd>
-              </div>
-            </dl>
-            <Link to={`/events/${event.event_id}`}>View event details →</Link>
-          </div>
-        </article>
+              <p>Hosted by {event.organiser_name ?? "an organiser"}</p>
+              <h2>{event.event_name}</h2>
+              <dl>
+                <div>
+                  <dt>Date</dt>
+                  <dd>{formatEventDate(event)}</dd>
+                </div>
+                <div>
+                  <dt>Format</dt>
+                  <dd>{formatEventFormat(event.event_format)}</dd>
+                </div>
+                <div>
+                  <dt>Team</dt>
+                  <dd>{getTeamLabel(event)}</dd>
+                </div>
+              </dl>
+              <Link to={`/events/${event.event_id}`}>View event details →</Link>
+            </div>
+          </article>
         );
       })}
     </div>
@@ -80,6 +83,33 @@ function RegisteredEventList({ events }) {
 
 function RegisteredEventsPage() {
   const sessionUser = getSessionUser();
+  const [registrations, setRegistrations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (!sessionUser || !canRegisterForEvents(sessionUser.role)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsLoading(false);
+      return;
+    }
+    let ignore = false;
+    listMyRegistrations()
+      .then((data) => {
+        if (!ignore) setRegistrations(data);
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setErrorMessage(error.message || "Unable to load your registrations.");
+        }
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [sessionUser]);
 
   if (!sessionUser) {
     return (
@@ -102,10 +132,6 @@ function RegisteredEventsPage() {
     return <Navigate to={getDashboardPath(sessionUser.role) ?? "/403"} replace />;
   }
 
-  const registeredIds = getRegisteredEventIds(sessionUser);
-  const registeredEvents = availableEvents.filter((event) =>
-    registeredIds.includes(event.event_id),
-  );
   const role = getDisplayRole(sessionUser.role);
 
   return (
@@ -124,11 +150,22 @@ function RegisteredEventsPage() {
 
         <section className="registered-events-summary">
           <span>Registered events</span>
-          <strong>{registeredEvents.length}</strong>
-          <small>Saved in this browser session</small>
+          <strong>{registrations.length}</strong>
+          <small>Includes waitlisted entries.</small>
         </section>
 
-        <RegisteredEventList events={registeredEvents} />
+        {errorMessage ? (
+          <p
+            style={{ padding: 40, textAlign: "center", color: "#dc2626" }}
+            role="alert"
+          >
+            {errorMessage}
+          </p>
+        ) : isLoading ? (
+          <p style={{ padding: 40, textAlign: "center" }}>Loading...</p>
+        ) : (
+          <RegisteredEventList registrations={registrations} />
+        )}
       </main>
     </div>
   );

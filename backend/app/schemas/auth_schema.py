@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -26,7 +27,7 @@ def _validate_display_name(value: str) -> str:
 
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
-    password: str = Field(min_length=8, max_length=255)
+    password: str = Field(max_length=255)
 
     @field_validator("email")
     @classmethod
@@ -100,11 +101,28 @@ class ResendVerificationRequest(BaseModel):
         return _validate_email(value)
 
 
+class PasswordResetRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        return _validate_email(value)
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=255)
+    new_password: str = Field(min_length=12, max_length=255)
+
+
 class AuthUserResponse(BaseModel):
     user_id: uuid.UUID
     email: str
     display_name: str
     role_name: str | None = None
+    account_status: str | None = None
+    email_verified: bool = False
+    created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -124,6 +142,11 @@ class LoginOtpRequest(BaseModel):
     otp: str = Field(min_length=6, max_length=6, pattern=r"^[0-9]{6}$")
 
 
+class ResendLoginOtpRequest(BaseModel):
+    login_intent_id: str = Field(min_length=16, max_length=128)
+
+
 class MessageResponse(BaseModel):
     message: str
     verification_token: str | None = None
+    reset_token: str | None = None

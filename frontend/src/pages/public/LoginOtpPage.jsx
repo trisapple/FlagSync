@@ -1,26 +1,78 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import PublicLayout from "../../components/public/PublicLayout";
-import { verifyLoginOtp } from "../../services/authService";
+import { resendLoginOtp, verifyLoginOtp } from "../../services/authService";
 import { saveSessionUser } from "../../utils/authSession";
 import { getDashboardPath } from "../../utils/roleRoutes";
+
+const RESEND_COOLDOWN = 60;
 
 function LoginOtpPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const loginIntentId = location.state?.loginIntentId;
+  const initialIntentId = location.state?.loginIntentId;
   const email = location.state?.email ?? "your email";
   const returnTo = location.state?.returnTo;
 
+  const [loginIntentId, setLoginIntentId] = useState(initialIntentId);
   const [otp, setOtp] = useState("");
   const [feedback, setFeedback] = useState({ type: "", text: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [countdown, setCountdown] = useState(RESEND_COOLDOWN);
+  const countdownRef = useRef(null);
 
   useEffect(() => {
-    if (!loginIntentId) {
+    if (!initialIntentId) {
       navigate("/login", { replace: true });
     }
-  }, [loginIntentId, navigate]);
+  }, [initialIntentId, navigate]);
+
+  useEffect(() => {
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(countdownRef.current);
+  }, []);
+
+  function startCountdown() {
+    clearInterval(countdownRef.current);
+    setCountdown(RESEND_COOLDOWN);
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  async function handleResend() {
+    setIsResending(true);
+    setFeedback({ type: "", text: "" });
+    try {
+      const result = await resendLoginOtp(loginIntentId);
+      setLoginIntentId(result.login_intent_id);
+      setOtp("");
+      startCountdown();
+      setFeedback({ type: "success", text: "A new code has been sent to your email." });
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        text: err.message || "Failed to resend code. Please try again.",
+      });
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   function handleOtpChange(event) {
     const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 6);
@@ -129,7 +181,18 @@ function LoginOtpPage() {
 
               <p className="auth-switch">
                 Didn't get the code?{" "}
-                <Link to="/login">Try signing in again</Link>
+                {countdown > 0 ? (
+                  <span>Resend in {countdown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="auth-switch-link"
+                    onClick={handleResend}
+                    disabled={isResending}
+                  >
+                    {isResending ? "Sending..." : "Resend code"}
+                  </button>
+                )}
               </p>
             </div>
           </section>

@@ -1,10 +1,28 @@
 import { Link } from "react-router-dom";
 import LogoutButton from "../auth/LogoutButton";
+import { useSessionUser } from "../../hooks/useSessionUser";
 import { getDashboardPath } from "../../utils/roleRoutes";
 import "./DashboardLayout.css";
 
-function DashboardSidebar({ role, activePage = "dashboard" }) {
-  const dashboardPath = getDashboardPath(role) ?? "/user/dashboard";
+function extractRoleName(sessionUser) {
+  if (!sessionUser) return "user";
+  const raw =
+    typeof sessionUser.role === "string"
+      ? sessionUser.role
+      : (sessionUser.role?.role_name ?? sessionUser.role?.name);
+  return raw?.trim().toLowerCase() ?? "user";
+}
+
+function formatRole(roleName) {
+  if (!roleName) return "User";
+  return roleName.charAt(0).toUpperCase() + roleName.slice(1);
+}
+
+function DashboardSidebar({ activePage = "dashboard" }) {
+  const sessionUser = useSessionUser();
+  const roleName = extractRoleName(sessionUser);
+  const roleLabel = formatRole(roleName);
+  const dashboardPath = getDashboardPath(roleName) ?? "/user/dashboard";
   const isOrganiser = dashboardPath === "/organiser/dashboard";
   const isAdministrator = dashboardPath === "/admin/dashboard";
   const isUser = dashboardPath === "/user/dashboard";
@@ -19,11 +37,11 @@ function DashboardSidebar({ role, activePage = "dashboard" }) {
       </Link>
 
       <div className="dashboard-role">
-        <span>{role}</span>
+        <span>{roleLabel}</span>
         <strong>Workspace</strong>
       </div>
 
-      <nav className="dashboard-nav" aria-label={`${role} workspace`}>
+      <nav className="dashboard-nav" aria-label={`${roleLabel} workspace`}>
         <Link
           className={`dashboard-nav-link ${
             activePage === "dashboard" ? "active" : ""
@@ -31,14 +49,6 @@ function DashboardSidebar({ role, activePage = "dashboard" }) {
           to={dashboardPath}
         >
           Overview
-        </Link>
-        <Link
-          className={`dashboard-nav-link ${
-            activePage === "events" ? "active" : ""
-          }`}
-          to="/events"
-        >
-          Events
         </Link>
         {isUser && (
           <Link

@@ -41,6 +41,11 @@ def list_audit_logs(
     return list(db.scalars(statement).all())
 
 
+def count_audit_logs_before(db: Session, cutoff: datetime) -> int:
+    statement = select(func.count()).where(AuditLog.created_at < cutoff)
+    return int(db.scalar(statement) or 0)
+
+
 def get_audit_logs_paginated(
     db: Session,
     *,

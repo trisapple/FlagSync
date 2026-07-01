@@ -42,7 +42,10 @@ PyYAML==6.0.3
 requests==2.34.2
 rich==15.0.0
 ruff==0.15.17
+bleach==6.4.0
+python-multipart==0.0.31
 redis==6.4.0
+supabase==2.13.0
 sortedcontainers==2.4.0
 SQLAlchemy==2.0.51
 starlette==1.3.1
