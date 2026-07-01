@@ -732,19 +732,40 @@ def get_current_user_from_request(
     return get_current_auth_context(request, db).user
 
 
+def _user_role_name(user: User) -> str | None:
+    return user.role.role_name if user.role is not None else None
+
+
 def require_roles(
     request: Request,
     db: Session,
     allowed_roles: set[str],
 ) -> User:
     user = get_current_user_from_request(request, db)
-    role_name = user.role.role_name if user.role is not None else None
-    if role_name not in allowed_roles:
+    if _user_role_name(user) not in allowed_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this resource",
         )
     return user
+
+
+def require_organiser(request: Request, db: Session) -> User:
+    user = get_current_user_from_request(request, db)
+    if _user_role_name(user) != "organiser":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Organiser access required",
+        )
+    return user
+
+
+def assert_owns_resource(user: User, owner_id: uuid.UUID) -> None:
+    if user.user_id != owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to modify this resource",
+        )
 
 
 def get_user_auth_payload(user: User) -> dict[str, Any]:
@@ -753,6 +774,9 @@ def get_user_auth_payload(user: User) -> dict[str, Any]:
         "email": user.email,
         "display_name": user.display_name,
         "role_name": user.role.role_name if user.role is not None else None,
+        "account_status": user.account_status,
+        "email_verified": user.email_verified,
+        "created_at": user.created_at,
     }
 
 
