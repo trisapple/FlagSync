@@ -9,7 +9,6 @@ function DashboardLayout({
   description,
   stats,
   actions,
-  activity,
 }) {
   return (
     <div className="dashboard-shell">
@@ -64,27 +63,6 @@ function DashboardLayout({
           </div>
         </section>
 
-        <section className="dashboard-section" id="activity">
-          <div className="dashboard-section-heading">
-            <div>
-              <p className="dashboard-eyebrow">Latest updates</p>
-              <h2>Recent activity</h2>
-            </div>
-          </div>
-
-          <div className="dashboard-activity-list">
-            {activity.map((item) => (
-              <article className="dashboard-activity-item" key={item.title}>
-                <span className="dashboard-activity-dot" aria-hidden="true" />
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </div>
-                <time>{item.time}</time>
-              </article>
-            ))}
-          </div>
-        </section>
       </main>
     </div>
   );

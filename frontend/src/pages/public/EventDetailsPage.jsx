@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import PublicLayout from "../../components/public/PublicLayout";
-import { getEventById } from "../../data/previewEvents";
-import { getSessionUser } from "../../utils/authSession";
+import { useSessionUser } from "../../hooks/useSessionUser";
+import { getPublishedEvent } from "../../services/eventService";
+import {
+  listMyRegistrations,
+  registerForEvent,
+  unregisterFromEvent,
+} from "../../services/registrationService";
+import {
+  createTeamForEvent,
+  getMyTeamForEvent,
+  joinTeamByCode,
+} from "../../services/teamService";
 import {
   formatDeadline,
   formatEventDate,
@@ -13,24 +23,182 @@ import {
   getRegistrationStatus,
   getTeamLabel,
 } from "../../utils/eventPresentation";
-import {
-  isEventRegistered,
-  registerEventForSession,
-} from "../../utils/eventRegistrationSession";
 import { canRegisterForEvents } from "../../utils/roleRoutes";
 import "./EventDetailsPage.css";
 
 function EventDetailsPage() {
   const { eventId } = useParams();
   const location = useLocation();
-  const event = getEventById(eventId);
-  const sessionUser = getSessionUser();
+  const sessionUser = useSessionUser();
   const userCanRegister = canRegisterForEvents(sessionUser?.role);
-  const [isRegistered, setIsRegistered] = useState(() =>
-    isEventRegistered(sessionUser, eventId),
-  );
+  const [event, setEvent] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [registrationStatusForMe, setRegistrationStatusForMe] = useState(null);
+  const [feedback, setFeedback] = useState({ type: "", text: "" });
+  const [isMutating, setIsMutating] = useState(false);
 
-  if (!event) {
+  const [team, setTeam] = useState(null);
+  const [teamName, setTeamName] = useState("");
+  const [inviteCodeInput, setInviteCodeInput] = useState("");
+  const [teamFeedback, setTeamFeedback] = useState({ type: "", text: "" });
+  const [isTeamMutating, setIsTeamMutating] = useState(false);
+
+  async function refreshTeam() {
+    try {
+      const data = await getMyTeamForEvent(eventId);
+      setTeam(data);
+    } catch {
+      setTeam(null);
+    }
+  }
+
+  useEffect(() => {
+    let ignore = false;
+
+    (async () => {
+      try {
+        const eventData = await getPublishedEvent(eventId);
+        if (ignore) return;
+        setEvent(eventData);
+
+        if (sessionUser && userCanRegister) {
+          try {
+            const registrations = await listMyRegistrations();
+            if (ignore) return;
+            const mine = registrations.find(
+              (r) => r.event?.event_id === eventId,
+            );
+            setRegistrationStatusForMe(mine?.registration_status ?? null);
+          } catch {
+            /* not fatal */
+          }
+
+          if (eventData.team_mode) {
+            try {
+              const teamData = await getMyTeamForEvent(eventId);
+              if (!ignore) setTeam(teamData);
+            } catch {
+              /* not fatal */
+            }
+          }
+        }
+      } catch {
+        if (!ignore) setNotFound(true);
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [eventId, sessionUser, userCanRegister]);
+
+  async function handleRegister() {
+    setFeedback({ type: "", text: "" });
+    setIsMutating(true);
+    try {
+      const result = await registerForEvent(eventId);
+      setRegistrationStatusForMe(result.registration_status);
+      setFeedback({
+        type: "success",
+        text:
+          result.registration_status === "waitlisted"
+            ? "You're on the waitlist — we'll notify you if a spot opens up."
+            : "You're registered.",
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error.message || "Unable to register.",
+      });
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  async function handleUnregister() {
+    if (!window.confirm("Cancel your registration for this event?")) return;
+    setFeedback({ type: "", text: "" });
+    setIsMutating(true);
+    try {
+      await unregisterFromEvent(eventId);
+      setRegistrationStatusForMe(null);
+      setTeam(null);
+      setFeedback({ type: "success", text: "Registration cancelled." });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        text: error.message || "Unable to cancel registration.",
+      });
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  async function handleCreateTeam(formEvent) {
+    formEvent.preventDefault();
+    setTeamFeedback({ type: "", text: "" });
+    setIsTeamMutating(true);
+    try {
+      const data = await createTeamForEvent(eventId, teamName.trim());
+      setTeam(data);
+      setTeamName("");
+      setRegistrationStatusForMe((prev) => prev ?? "registered");
+      setTeamFeedback({
+        type: "success",
+        text: "Team created. Share the invite code with your teammates.",
+      });
+    } catch (error) {
+      setTeamFeedback({
+        type: "error",
+        text: error.message || "Unable to create team.",
+      });
+    } finally {
+      setIsTeamMutating(false);
+    }
+  }
+
+  async function handleJoinTeam(formEvent) {
+    formEvent.preventDefault();
+    setTeamFeedback({ type: "", text: "" });
+    setIsTeamMutating(true);
+    try {
+      const data = await joinTeamByCode(inviteCodeInput.trim());
+      setTeam(data);
+      setInviteCodeInput("");
+      setRegistrationStatusForMe(
+        (prev) => prev ?? "registered",
+      );
+      setTeamFeedback({
+        type: "success",
+        text: `Joined team ${data.team_name}.`,
+      });
+      refreshTeam();
+    } catch (error) {
+      setTeamFeedback({
+        type: "error",
+        text: error.message || "Unable to join team.",
+      });
+    } finally {
+      setIsTeamMutating(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <PublicLayout>
+        <main className="event-detail-not-found">
+          <div className="public-container">
+            <p className="public-eyebrow">Loading event...</p>
+          </div>
+        </main>
+      </PublicLayout>
+    );
+  }
+
+  if (notFound || !event) {
     return (
       <PublicLayout>
         <main className="event-detail-not-found">
@@ -47,13 +215,12 @@ function EventDetailsPage() {
     );
   }
 
-  function handleRegistration() {
-    registerEventForSession(sessionUser, event.event_id);
-    setIsRegistered(true);
-  }
-
   const dateBadge = getEventDateBadge(event.start_date);
   const registrationStatus = getRegistrationStatus(event);
+  const isRegistered = registrationStatusForMe === "registered";
+  const isWaitlisted = registrationStatusForMe === "waitlisted";
+  const canManageTeam = sessionUser && userCanRegister && event.team_mode;
+  const canJoinTeamOnly = sessionUser && userCanRegister && event.team_mode;
 
   return (
     <PublicLayout>
@@ -76,12 +243,15 @@ function EventDetailsPage() {
                   </span>
                 </div>
                 <p className="event-detail-organiser">
-                  Hosted by {event.organiser_name}
+                  Hosted by {event.organiser_name ?? "an organiser"}
                 </p>
                 <h1>{event.event_name}</h1>
                 <p>{event.description}</p>
               </div>
-              <div className="event-detail-date" aria-label={formatEventDate(event)}>
+              <div
+                className="event-detail-date"
+                aria-label={formatEventDate(event)}
+              >
                 <span>{dateBadge.month}</span>
                 <strong>{dateBadge.day}</strong>
                 <small>{dateBadge.year}</small>
@@ -106,11 +276,143 @@ function EventDetailsPage() {
                   <li>Use an active FlagSync account to register.</li>
                   <li>{getTeamLabel(event)} may register together.</li>
                   <li>
-                    Complete registration before {formatDeadline(event.registration_deadline)}.
+                    Complete registration before{" "}
+                    {formatDeadline(event.registration_deadline)}.
                   </li>
-                  <li>Follow the organiser’s rules and code of conduct.</li>
+                  <li>Follow the organiser's rules and code of conduct.</li>
                 </ul>
               </article>
+
+              {event.team_mode && sessionUser && userCanRegister && (
+                <article className="event-detail-card">
+                  <p className="public-eyebrow">Team registration</p>
+                  <h2>
+                    {team
+                      ? "Your team"
+                      : "Create a new team or join with an invite code"}
+                  </h2>
+
+                  {teamFeedback.text && (
+                    <p
+                      className={`login-status login-status-${teamFeedback.type}`}
+                      role={teamFeedback.type === "error" ? "alert" : "status"}
+                    >
+                      {teamFeedback.text}
+                    </p>
+                  )}
+
+                  {team ? (
+                    <div>
+                      <p>
+                        <strong>{team.team_name}</strong>
+                      </p>
+                      <p>
+                        Invite code:{" "}
+                        <code
+                          style={{
+                            padding: "2px 8px",
+                            background: "#eef2ff",
+                            borderRadius: 6,
+                            fontFamily: "monospace",
+                            fontSize: "1.05rem",
+                            letterSpacing: 1,
+                          }}
+                        >
+                          {team.invite_code}
+                        </code>
+                      </p>
+                      <p style={{ color: "#64748b", fontSize: 14 }}>
+                        Share this code with your teammates so they can join.
+                        Up to {event.max_team_size} members total.
+                      </p>
+                      <h3 style={{ marginTop: 20 }}>
+                        Members ({team.members.length}/{event.max_team_size})
+                      </h3>
+                      <ul style={{ paddingLeft: 20 }}>
+                        {team.members.map((member) => (
+                          <li key={member.user_id}>
+                            {member.display_name}
+                            {member.user_id === team.leader_id && " (leader)"}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <>
+                      {canManageTeam && (
+                        <form
+                          className="login-form"
+                          onSubmit={handleCreateTeam}
+                          style={{ marginBottom: 24 }}
+                        >
+                          <div className="login-field">
+                            <label htmlFor="team_name">
+                              Create a new team
+                            </label>
+                            <input
+                              id="team_name"
+                              type="text"
+                              value={teamName}
+                              onChange={(event) =>
+                                setTeamName(event.target.value)
+                              }
+                              minLength={2}
+                              maxLength={255}
+                              placeholder="Team name"
+                              required
+                            />
+                          </div>
+                          <button
+                            className="public-button public-button-primary"
+                            type="submit"
+                            disabled={isTeamMutating}
+                          >
+                            {isTeamMutating ? "Creating..." : "Create team"}
+                          </button>
+                        </form>
+                      )}
+
+                      {canJoinTeamOnly && (
+                        <form className="login-form" onSubmit={handleJoinTeam}>
+                          <div className="login-field">
+                            <label htmlFor="invite_code">
+                              Join with an invite code
+                            </label>
+                            <input
+                              id="invite_code"
+                              type="text"
+                              value={inviteCodeInput}
+                              onChange={(event) =>
+                                setInviteCodeInput(event.target.value)
+                              }
+                              placeholder="e.g. a3f9c1b2"
+                              required
+                            />
+                            <small style={{ color: "#64748b" }}>
+                              Joining a team will also register you for this
+                              event.
+                            </small>
+                          </div>
+                          <button
+                            className="public-button public-button-secondary"
+                            type="submit"
+                            disabled={isTeamMutating}
+                          >
+                            {isTeamMutating ? "Joining..." : "Join team"}
+                          </button>
+                        </form>
+                      )}
+
+                      {!canManageTeam && !team && (
+                        <p style={{ color: "#64748b" }}>
+                          Register for the event first, then create or join a
+                          team.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </article>
+              )}
             </div>
 
             <aside className="event-registration-card">
@@ -138,13 +440,24 @@ function EventDetailsPage() {
                 </div>
                 <div>
                   <dt>Capacity</dt>
-                  <dd>{event.capacity} participants</dd>
+                  <dd>
+                    {event.capacity ? `${event.capacity} participants` : "—"}
+                  </dd>
                 </div>
                 <div>
                   <dt>Format</dt>
                   <dd>{formatEventFormat(event.event_format)}</dd>
                 </div>
               </dl>
+
+              {feedback.text && (
+                <p
+                  className={`login-status login-status-${feedback.type}`}
+                  role={feedback.type === "error" ? "alert" : "status"}
+                >
+                  {feedback.text}
+                </p>
+              )}
 
               {registrationStatus.key === "closed" ? (
                 <button
@@ -170,27 +483,63 @@ function EventDetailsPage() {
                 >
                   User accounts only
                 </button>
-              ) : isRegistered ? (
-                <Link
-                  className="event-registration-action event-registration-complete"
-                  to="/events/registered"
+              ) : isRegistered || isWaitlisted ? (
+                <button
+                  className="public-button public-button-secondary event-registration-action"
+                  type="button"
+                  onClick={handleUnregister}
+                  disabled={isMutating}
                 >
-                  Already registered
-                </Link>
+                  {isMutating
+                    ? "Cancelling..."
+                    : isWaitlisted
+                      ? "Leave waitlist"
+                      : "Cancel registration"}
+                </button>
               ) : (
                 <button
                   className="public-button public-button-primary event-registration-action"
                   type="button"
-                  onClick={handleRegistration}
+                  onClick={handleRegister}
+                  disabled={isMutating}
                 >
-                  Register for event
+                  {isMutating ? "Registering..." : "Register for event"}
                 </button>
+              )}
+
+              {(isRegistered || isWaitlisted) && (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 8,
+                    marginTop: 12,
+                  }}
+                >
+                  <Link
+                    className="public-button public-button-secondary"
+                    to={`/events/${event.event_id}/challenges`}
+                  >
+                    View challenges
+                  </Link>
+                  {event.leaderboard_visible && (
+                    <Link
+                      className="public-button public-button-secondary"
+                      to={`/events/${event.event_id}/leaderboard`}
+                    >
+                      Leaderboard
+                    </Link>
+                  )}
+                </div>
               )}
 
               <p className="event-registration-note">
                 {sessionUser && !userCanRegister
                   ? "Administrators and organisers cannot register for events."
-                  : "Registration is stored in this browser session for UI preview only."}
+                  : isRegistered
+                    ? "You'll receive announcements from the organisers by email."
+                    : isWaitlisted
+                      ? "You'll be notified if a spot opens up."
+                      : "You can cancel anytime before the event starts."}
               </p>
             </aside>
           </div>

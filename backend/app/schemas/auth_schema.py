@@ -1,5 +1,6 @@
 import re
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -105,6 +106,9 @@ class AuthUserResponse(BaseModel):
     email: str
     display_name: str
     role_name: str | None = None
+    account_status: str | None = None
+    email_verified: bool = False
+    created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

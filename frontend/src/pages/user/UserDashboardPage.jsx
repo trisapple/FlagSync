@@ -1,10 +1,6 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-
-const stats = [
-  { label: "Registered events", value: "5", detail: "2 currently active" },
-  { label: "Challenges solved", value: "38", detail: "+6 this week" },
-  { label: "Team ranking", value: "#12", detail: "Top 8% overall" },
-];
+import { listMyRegistrations } from "../../services/registrationService";
 
 const actions = [
   {
@@ -24,25 +20,43 @@ const actions = [
   },
 ];
 
-const activity = [
-  {
-    title: "Challenge completed",
-    description: "You solved Hidden in Plain Sight for 250 points.",
-    time: "20 min ago",
-  },
-  {
-    title: "Team invitation accepted",
-    description: "A new member joined ByteBusters.",
-    time: "2 hours ago",
-  },
-  {
-    title: "Event reminder",
-    description: "Cloud Security Sprint begins this Saturday.",
-    time: "Yesterday",
-  },
-];
-
 function UserDashboardPage() {
+  const [registrations, setRegistrations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+    listMyRegistrations()
+      .then((data) => {
+        if (!ignore) setRegistrations(data);
+      })
+      .catch(() => {
+        if (!ignore) setRegistrations([]);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const registeredCount = registrations.length;
+  const activeCount = registrations.filter(
+    (r) => r.registration_status === "registered",
+  ).length;
+  const waitlistedCount = registrations.filter(
+    (r) => r.registration_status === "waitlisted",
+  ).length;
+
+  const stats = [
+    {
+      label: "Registered events",
+      value: isLoading ? "—" : String(registeredCount),
+      detail: `${activeCount} confirmed, ${waitlistedCount} waitlisted`,
+    },
+  ];
+
   return (
     <DashboardLayout
       role="User"
@@ -51,7 +65,6 @@ function UserDashboardPage() {
       description="Track your events, team progress, and latest competition activity in one place."
       stats={stats}
       actions={actions}
-      activity={activity}
     />
   );
 }

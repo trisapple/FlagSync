@@ -13,9 +13,30 @@ from app.database import Base, SessionLocal, engine, get_db
 from app.models.role import Role
 from app.repositories.role_repository import get_role_by_name
 from app.repositories.user_repository import create_user, get_user_by_email
+from app.routers.analytics import router as analytics_router
+from app.routers.announcements import (
+    announcement_router,
+    event_router as event_announcement_router,
+)
 from app.routers.admin import router as admin_router
 from app.routers.audit_logs import router as audit_logs_router
 from app.routers.auth_router import router as auth_router
+from app.routers.events import router as events_router
+from app.routers.registrations import (
+    event_participants_router,
+    event_registration_router,
+    me_router as registrations_me_router,
+)
+from app.routers.teams import event_teams_router, teams_router
+from app.routers.challenges import (
+    challenges_router,
+    event_challenges_router,
+)
+from app.routers.leaderboard import router as leaderboard_router
+from app.routers.resources import (
+    event_resource_router,
+    resource_router,
+)
 from app.routers.roles import router as roles_router
 from app.schemas.user import UserRegistration, UserLogin
 from app.services.auth_service import (
@@ -66,6 +87,20 @@ async def security_headers_middleware(request, call_next):
 
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(roles_router)
+app.include_router(events_router)
+app.include_router(event_announcement_router)
+app.include_router(announcement_router)
+app.include_router(event_resource_router)
+app.include_router(resource_router)
+app.include_router(event_registration_router)
+app.include_router(event_participants_router)
+app.include_router(registrations_me_router)
+app.include_router(event_teams_router)
+app.include_router(teams_router)
+app.include_router(event_challenges_router)
+app.include_router(challenges_router)
+app.include_router(leaderboard_router)
+app.include_router(analytics_router)
 app.include_router(audit_logs_router)
 app.include_router(admin_router)
 

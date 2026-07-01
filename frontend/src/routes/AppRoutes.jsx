@@ -13,6 +13,16 @@ import AdminUsersPage from "../pages/administrator/AdminUsersPage";
 import AuditLogsPage from "../pages/administrator/AuditLogsPage";
 import OrganiserDashboardPage from "../pages/organiser/OrganiserDashboardPage";
 import ManageEventsPage from "../pages/organiser/ManageEventsPage";
+import CreateEventPage from "../pages/organiser/CreateEventPage";
+import EditEventPage from "../pages/organiser/EditEventPage";
+import EventAnnouncementsPage from "../pages/organiser/EventAnnouncementsPage";
+import EventAnalyticsPage from "../pages/organiser/EventAnalyticsPage";
+import EventResourcesPage from "../pages/organiser/EventResourcesPage";
+import EventParticipantsPage from "../pages/organiser/EventParticipantsPage";
+import EventChallengesOrganiserPage from "../pages/organiser/EventChallengesPage";
+import EventChallengesPage from "../pages/public/EventChallengesPage";
+import EventLeaderboardPage from "../pages/public/EventLeaderboardPage";
+import RequireAuth from "../components/auth/RequireAuth";
 import UserDashboardPage from "../pages/user/UserDashboardPage";
 import RegisteredEventsPage from "../pages/user/RegisteredEventsPage";
 import AccountProfilePage from "../pages/account/ProfilePage";
@@ -51,7 +61,78 @@ function AppRoutes() {
       <Route path="/events" element={<EventsPage />} />
       <Route path="/events/registered" element={<RegisteredEventsPage />} />
       <Route path="/events/:eventId" element={<EventDetailsPage />} />
-      <Route path="/organiser/events/manage" element={<ManageEventsPage />} />
+      <Route
+        path="/organiser/events/manage"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <ManageEventsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/organiser/events/new"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <CreateEventPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/organiser/events/:eventId/edit"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <EditEventPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/organiser/events/:eventId/announcements"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <EventAnnouncementsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/organiser/events/:eventId/analytics"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <EventAnalyticsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/organiser/events/:eventId/participants"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <EventParticipantsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/organiser/events/:eventId/challenges"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <EventChallengesOrganiserPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/events/:eventId/challenges"
+        element={<EventChallengesPage />}
+      />
+      <Route
+        path="/events/:eventId/leaderboard"
+        element={<EventLeaderboardPage />}
+      />
+      <Route
+        path="/organiser/events/:eventId/resources"
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <EventResourcesPage />
+          </RequireAuth>
+        }
+      />
       <Route path="/profile" element={<AccountProfilePage />} />
       <Route path="/admin/users" element={<AdminUsersPage />} />
       <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
