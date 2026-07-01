@@ -101,20 +101,6 @@ class ResendVerificationRequest(BaseModel):
         return _validate_email(value)
 
 
-class PasswordResetRequest(BaseModel):
-    email: str = Field(min_length=3, max_length=255)
-
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, value: str) -> str:
-        return _validate_email(value)
-
-
-class PasswordResetConfirmRequest(BaseModel):
-    token: str = Field(min_length=32, max_length=255)
-    new_password: str = Field(min_length=12, max_length=255)
-
-
 class AuthUserResponse(BaseModel):
     user_id: uuid.UUID
     email: str
@@ -149,4 +135,3 @@ class ResendLoginOtpRequest(BaseModel):
 class MessageResponse(BaseModel):
     message: str
     verification_token: str | None = None
-    reset_token: str | None = None

@@ -76,8 +76,3 @@ def sum_user_storage_bytes(db: Session, user_id: uuid.UUID) -> int:
         Resource.uploaded_by == user_id,
     )
     return int(db.scalar(statement) or 0)
-
-
-def count_user_resources(db: Session, user_id: uuid.UUID) -> int:
-    statement = select(func.count()).where(Resource.uploaded_by == user_id)
-    return int(db.scalar(statement) or 0)

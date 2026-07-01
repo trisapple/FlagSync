@@ -31,10 +31,6 @@ def build_verification_url(token: str) -> str:
     return f"{APP_BASE_URL}/verify-email?token={token}"
 
 
-def build_password_reset_url(token: str) -> str:
-    return f"{APP_BASE_URL}/reset-password?token={token}"
-
-
 def send_verification_email(
     *,
     to_email: str,
@@ -135,60 +131,6 @@ def send_login_otp_email(
             smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
             smtp.send_message(message)
         logger.info("login_otp_email_sent to %s", _mask_email(to_email))
-        return True
-    except Exception:
-        logger.exception("SMTP send failed for %s", _mask_email(to_email))
-        return False
-
-
-def send_password_reset_email(
-    *,
-    to_email: str,
-    token: str,
-    display_name: str,
-) -> bool:
-    reset_url = build_password_reset_url(token)
-    safe_name = html_module.escape((display_name or "there").strip()[:80])
-
-    if not is_configured():
-        logger.warning(
-            "SMTP credentials not set; printing password reset link instead of sending email",
-        )
-        logger.info(
-            "Password reset link for %s: %s",
-            _mask_email(to_email),
-            reset_url,
-        )
-        return False
-
-    subject = "Reset your FlagSync password"
-    html = (
-        f"<p>Hi {safe_name},</p>"
-        f"<p>Click the link below to reset your FlagSync password:</p>"
-        f'<p><a href="{reset_url}">Reset my password</a></p>'
-        f"<p>This link expires soon and can only be used once. "
-        f"If you did not request a password reset, you can ignore this email.</p>"
-    )
-    text = (
-        f"Hi {safe_name},\n\n"
-        f"Reset your FlagSync password by visiting:\n{reset_url}\n\n"
-        f"This link expires soon and can only be used once."
-    )
-
-    message = EmailMessage()
-    message["From"] = EMAIL_FROM
-    message["To"] = to_email
-    message["Subject"] = subject
-    message.set_content(text)
-    message.add_alternative(html, subtype="html")
-
-    try:
-        context = ssl.create_default_context()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
-            smtp.starttls(context=context)
-            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
-            smtp.send_message(message)
-        logger.info("password_reset_email_sent to %s", _mask_email(to_email))
         return True
     except Exception:
         logger.exception("SMTP send failed for %s", _mask_email(to_email))

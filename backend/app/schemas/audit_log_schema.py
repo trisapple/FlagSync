@@ -21,9 +21,3 @@ class AuditLogResponse(BaseModel):
 class AuditLogsListResponse(BaseModel):
     items: list[AuditLogResponse]
     total: int
-
-
-class AuditRetentionResponse(BaseModel):
-    retention_days: int
-    archive_eligible_before: datetime
-    archive_eligible_count: int

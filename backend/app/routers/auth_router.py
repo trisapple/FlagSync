@@ -20,8 +20,6 @@ from app.schemas.auth_schema import (
     LoginOtpRequest,
     LoginRequest,
     MessageResponse,
-    PasswordResetConfirmRequest,
-    PasswordResetRequest,
     RegisterRequest,
     RegistrationChallengeResponse,
     ResendLoginOtpRequest,
@@ -31,12 +29,10 @@ from app.schemas.auth_schema import (
 )
 from app.services.email_service import (
     send_login_otp_email,
-    send_password_reset_email,
     send_verification_email,
 )
 from app.services.auth_service import (
     EMAIL_VERIFICATION_REQUIRED,
-    EXPOSE_DEV_PASSWORD_RESET_TOKEN,
     EXPOSE_DEV_VERIFICATION_TOKEN,
     LOCKOUT_TIME_SECONDS,
     MAX_LOGIN_ATTEMPTS,
@@ -46,11 +42,9 @@ from app.services.auth_service import (
     clear_failed_logins,
     consume_email_verification_token,
     consume_login_otp,
-    consume_password_reset_token,
     create_access_token,
     create_email_verification_token,
     create_login_otp,
-    create_password_reset_token,
     create_registration_challenge,
     get_client_ip,
     get_current_auth_context,
@@ -280,97 +274,6 @@ def verify_email(
         )
 
     return MessageResponse(message="Email verified successfully")
-
-
-@router.post("/password-reset/request", response_model=MessageResponse)
-def request_password_reset(
-    request: Request,
-    body: PasswordResetRequest,
-    db: Session = Depends(get_db),
-) -> MessageResponse:
-    _enforce_auth_rate_limit(request)
-
-    generic_message = "If that email is registered, we've sent a password reset link."
-
-    email = normalize_email(body.email)
-    user = get_user_by_email(db, email)
-    if user is None or user.account_status != "active":
-        return MessageResponse(message=generic_message)
-
-    reset_token = create_password_reset_token(user.user_id)
-    email_sent = send_password_reset_email(
-        to_email=user.email,
-        token=reset_token,
-        display_name=user.display_name,
-    )
-
-    try:
-        record_audit_event(
-            db,
-            action_type="password_reset_requested",
-            result="success" if email_sent else "failure",
-            request=request,
-            actor_user_id=user.user_id,
-            resource_type="user",
-            resource_id=str(user.user_id),
-        )
-        db.commit()
-    except SQLAlchemyError:
-        db.rollback()
-
-    return MessageResponse(
-        message=generic_message,
-        reset_token=reset_token if EXPOSE_DEV_PASSWORD_RESET_TOKEN else None,
-    )
-
-
-@router.post("/password-reset/confirm", response_model=MessageResponse)
-def confirm_password_reset(
-    request: Request,
-    body: PasswordResetConfirmRequest,
-    db: Session = Depends(get_db),
-) -> MessageResponse:
-    _enforce_auth_rate_limit(request)
-    validate_password_policy(body.new_password)
-
-    user_id = consume_password_reset_token(body.token)
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset link is invalid or expired",
-        )
-
-    user = get_user_by_id(db, user_id)
-    if user is None or user.account_status != "active":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset link is invalid or expired",
-        )
-
-    try:
-        update_user_profile(
-            db,
-            user,
-            password_hash=get_password_hash(body.new_password),
-        )
-        record_audit_event(
-            db,
-            action_type="password_reset_completed",
-            result="success",
-            request=request,
-            actor_user_id=user.user_id,
-            resource_type="user",
-            resource_id=str(user.user_id),
-        )
-        db.commit()
-    except SQLAlchemyError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Unable to reset password",
-        )
-
-    return MessageResponse(message="Password reset successful. Please sign in again.")
 
 
 @router.post("/login", response_model=LoginInitiateResponse)
