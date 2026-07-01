@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import PublicLayout from "../../components/public/PublicLayout";
 import { useSessionUser } from "../../hooks/useSessionUser";
+import { listEventAnnouncements } from "../../services/announcementService";
 import { getPublishedEvent } from "../../services/eventService";
 import {
   listMyRegistrations,
@@ -43,6 +44,7 @@ function EventDetailsPage() {
   const [inviteCodeInput, setInviteCodeInput] = useState("");
   const [teamFeedback, setTeamFeedback] = useState({ type: "", text: "" });
   const [isTeamMutating, setIsTeamMutating] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
 
   async function refreshTeam() {
     try {
@@ -81,6 +83,13 @@ function EventDetailsPage() {
             } catch {
               /* not fatal */
             }
+          }
+
+          try {
+            const announcementData = await listEventAnnouncements(eventId);
+            if (!ignore) setAnnouncements(announcementData);
+          } catch {
+            /* not fatal — user may not have access */
           }
         }
       } catch {
@@ -282,6 +291,64 @@ function EventDetailsPage() {
                   <li>Follow the organiser's rules and code of conduct.</li>
                 </ul>
               </article>
+
+              {announcements.length > 0 && (
+                <article className="event-detail-card">
+                  <p className="public-eyebrow">Updates</p>
+                  <h2>Announcements ({announcements.length})</h2>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 16,
+                      marginTop: 16,
+                    }}
+                  >
+                    {announcements.map((announcement) => (
+                      <div
+                        key={announcement.announcement_id}
+                        style={{
+                          padding: 20,
+                          background: "#f8fafc",
+                          borderRadius: 12,
+                          borderLeft: "4px solid #6366f1",
+                        }}
+                      >
+                        <h3
+                          style={{
+                            margin: 0,
+                            fontSize: 17,
+                            color: "#0f172a",
+                          }}
+                        >
+                          {announcement.title}
+                        </h3>
+                        <p
+                          style={{
+                            margin: "8px 0 0",
+                            whiteSpace: "pre-wrap",
+                            color: "#334155",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {announcement.content}
+                        </p>
+                        <p
+                          style={{
+                            margin: "12px 0 0",
+                            fontSize: 12,
+                            color: "#64748b",
+                          }}
+                        >
+                          Posted{" "}
+                          {new Date(
+                            announcement.created_at,
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              )}
 
               {event.team_mode && sessionUser && userCanRegister && (
                 <article className="event-detail-card">

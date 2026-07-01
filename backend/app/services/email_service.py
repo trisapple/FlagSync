@@ -86,63 +86,6 @@ def send_verification_email(
         return False
 
 
-def send_announcement_email(
-    *,
-    to_email: str,
-    display_name: str,
-    event_name: str,
-    title: str,
-    content: str,
-) -> bool:
-    safe_name = html_module.escape((display_name or "there").strip()[:80])
-    safe_event = html_module.escape(event_name[:200])
-    safe_title = html_module.escape(title[:200])
-    safe_content = html_module.escape(content[:5000]).replace("\n", "<br>")
-
-    if not is_configured():
-        logger.warning(
-            "SMTP credentials not set; skipping announcement email to %s",
-            _mask_email(to_email),
-        )
-        return False
-
-    subject = f"[{event_name}] {title}"
-    html = (
-        f"<p>Hi {safe_name},</p>"
-        f"<p>The organisers of <strong>{safe_event}</strong> posted a new "
-        f"announcement:</p>"
-        f"<h3>{safe_title}</h3>"
-        f"<p>{safe_content}</p>"
-        f"<p>You're receiving this because you registered for this event.</p>"
-    )
-    text = (
-        f"Hi {safe_name},\n\n"
-        f"New announcement from {event_name}:\n\n"
-        f"{title}\n\n"
-        f"{content}\n\n"
-        f"You're receiving this because you registered for this event."
-    )
-
-    message = EmailMessage()
-    message["From"] = EMAIL_FROM
-    message["To"] = to_email
-    message["Subject"] = subject
-    message.set_content(text)
-    message.add_alternative(html, subtype="html")
-
-    try:
-        context = ssl.create_default_context()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
-            smtp.starttls(context=context)
-            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
-            smtp.send_message(message)
-        logger.info("announcement_email_sent to %s", _mask_email(to_email))
-        return True
-    except Exception:
-        logger.exception("SMTP send failed for %s", _mask_email(to_email))
-        return False
-
-
 def send_login_otp_email(
     *,
     to_email: str,

@@ -9,7 +9,6 @@ from app.repositories.announcement_repository import (
     create_announcement,
     delete_announcement,
     get_announcement_by_id,
-    list_active_registrants,
     list_announcements_for_event,
 )
 from app.repositories.event_repository import get_event_by_id
@@ -23,7 +22,6 @@ from app.services.auth_service import (
     record_audit_event,
     require_organiser,
 )
-from app.services.email_service import send_announcement_email
 
 
 event_router = APIRouter(
@@ -102,29 +100,6 @@ def create_event_announcement(
             resource_id=str(announcement.announcement_id),
             details={"event_id": str(event_id), "title": announcement.title},
         )
-
-        recipients = list_active_registrants(db, event_id)
-        for recipient in recipients:
-            email_sent = send_announcement_email(
-                to_email=recipient.email,
-                display_name=recipient.display_name,
-                event_name=event.event_name,
-                title=announcement.title,
-                content=announcement.content,
-            )
-            record_audit_event(
-                db,
-                action_type="announcement_notification_sent",
-                result="success" if email_sent else "failure",
-                request=request,
-                actor_user_id=user.user_id,
-                resource_type="user",
-                resource_id=str(recipient.user_id),
-                details={
-                    "announcement_id": str(announcement.announcement_id),
-                    "event_id": str(event_id),
-                },
-            )
 
         db.commit()
 

@@ -4,7 +4,6 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from app.models.announcement import Announcement
-from app.models.event_registration import EventRegistration
 
 
 def get_announcement_by_id(
@@ -51,32 +50,3 @@ def create_announcement(
 def delete_announcement(db: Session, announcement: Announcement) -> None:
     db.delete(announcement)
     db.flush()
-
-
-def list_active_registrant_ids(
-    db: Session,
-    event_id: uuid.UUID,
-) -> list[uuid.UUID]:
-    statement = select(EventRegistration.user_id).where(
-        EventRegistration.event_id == event_id,
-        EventRegistration.registration_status == "registered",
-    )
-    return list(db.scalars(statement).all())
-
-
-def list_active_registrants(
-    db: Session,
-    event_id: uuid.UUID,
-):
-    from app.models.user import User
-
-    statement = (
-        select(User)
-        .join(EventRegistration, EventRegistration.user_id == User.user_id)
-        .where(
-            EventRegistration.event_id == event_id,
-            EventRegistration.registration_status == "registered",
-            User.account_status == "active",
-        )
-    )
-    return list(db.scalars(statement).all())
