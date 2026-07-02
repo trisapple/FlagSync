@@ -323,7 +323,7 @@ class TestDeleteUser:
         uid = self._uid(client, monkeypatch, admin_user)
         client.delete(f"/api/admin/users/{uid}?reason=Requested+deletion")
         logs = client.get("/api/audit-logs").json()
-        assert any(log["action_type"] == "admin_user_deleted" for log in logs)
+        assert any(log["action_type"] == "user_deleted" for log in logs)
 
     def test_admin_cannot_delete_themselves(self, client, monkeypatch, admin_user):
         login_as_admin(client, monkeypatch, admin_user)
