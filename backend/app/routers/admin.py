@@ -104,11 +104,11 @@ def update_user_status(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    if body.account_status == "suspended":
+    if body.account_status in ("suspended", "deleted"):
         if user.user_id == admin.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You cannot suspend your own account.",
+                detail="You cannot suspend or delete your own account.",
             )
         if (
             user.role is not None
@@ -117,16 +117,31 @@ def update_user_status(
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cannot suspend the last active administrator.",
+                detail="Cannot suspend or delete the last active administrator.",
             )
 
     previous_status = user.account_status
 
     try:
-        updated_user = update_user_account_status(db, user, body.account_status)
+        if body.account_status == "deleted":
+            replacement_email = (
+                f"deleted-{user_id}-{secrets.token_hex(4)}@deleted.local"
+            )
+            replacement_password_hash = get_password_hash(secrets.token_urlsafe(32))
+            updated_user = deactivate_user(
+                db,
+                user,
+                replacement_email=replacement_email,
+                replacement_password_hash=replacement_password_hash,
+            )
+            audit_action = "user_deleted"
+        else:
+            updated_user = update_user_account_status(db, user, body.account_status)
+            audit_action = "user_status_changed"
+
         record_audit_event(
             db,
-            action_type="user_status_changed",
+            action_type=audit_action,
             result="success",
             request=request,
             actor_user_id=admin.user_id,
@@ -146,10 +161,10 @@ def update_user_status(
             detail="Unable to update user status",
         )
 
-    action_label = "activated" if body.account_status == "active" else "suspended"
+    label_map = {"active": "activated", "suspended": "suspended", "deleted": "deleted"}
     return AdminUserActionResponse(
         user=AdminUserResponse.from_user(updated_user),
-        message=f"Account {action_label}.",
+        message=f"Account {label_map.get(body.account_status, 'updated')}.",
     )
 
 
@@ -202,7 +217,7 @@ def delete_user(
         )
         record_audit_event(
             db,
-            action_type="admin_user_deleted",
+            action_type="user_deleted",
             result="success",
             request=request,
             actor_user_id=admin.user_id,

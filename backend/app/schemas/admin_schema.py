@@ -13,6 +13,7 @@ class AdminUserResponse(BaseModel):
     email: str
     role_name: str | None = None
     account_status: str
+    email_verified: bool
     created_at: datetime
 
     @classmethod
@@ -23,6 +24,7 @@ class AdminUserResponse(BaseModel):
             email=user.email,
             role_name=user.role.role_name if user.role is not None else None,
             account_status=user.account_status,
+            email_verified=user.email_verified,
             created_at=user.created_at,
         )
 
@@ -34,7 +36,7 @@ class AdminUsersListResponse(BaseModel):
 
 
 AllowedRoleName = Literal["user", "organiser", "administrator"]
-AllowedAccountStatus = Literal["active", "suspended"]
+AllowedAccountStatus = Literal["active", "suspended", "deleted"]
 
 
 class UpdateUserStatusRequest(BaseModel):
