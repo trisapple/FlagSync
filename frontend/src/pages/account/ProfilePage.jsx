@@ -82,7 +82,6 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!sessionUser) {
-      setIsLoading(false);
       return;
     }
 
