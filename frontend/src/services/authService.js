@@ -74,3 +74,19 @@ export async function resendVerification(email) {
   });
   return response.data;
 }
+
+export async function requestPasswordReset(email) {
+  const response = await apiClient.post(
+    `${AUTH_BASE_PATH}/password-reset/request`,
+    { email },
+  );
+  return response.data;
+}
+
+export async function confirmPasswordReset({ token, newPassword }) {
+  const response = await apiClient.post(
+    `${AUTH_BASE_PATH}/password-reset/confirm`,
+    { token, new_password: newPassword },
+  );
+  return response.data;
+}

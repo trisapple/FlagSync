@@ -117,6 +117,12 @@ function LoginPage() {
                     onChange={handleChange}
                     required
                   />
+                  <Link
+                    className="auth-switch-link forgot-password-link"
+                    to="/forgot-password"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
 
                 {feedback.text && (

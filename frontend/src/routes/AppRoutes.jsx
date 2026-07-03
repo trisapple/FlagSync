@@ -5,6 +5,8 @@ import LoginPage from "../pages/public/LoginPage";
 import LoginOtpPage from "../pages/public/LoginOtpPage";
 import RegisterPage from "../pages/public/RegisterPage";
 import VerifyEmailPage from "../pages/public/VerifyEmailPage";
+import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/public/ResetPasswordPage";
 import EventsPage from "../pages/public/EventsPage";
 import EventDetailsPage from "../pages/public/EventDetailsPage";
 import NotFoundPage from "../pages/errors/NotFoundPage";
@@ -58,6 +60,8 @@ function AppRoutes() {
         }
       />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/events" element={<EventsPage />} />
       <Route path="/events/registered" element={<RegisteredEventsPage />} />
       <Route path="/events/:eventId" element={<EventDetailsPage />} />

@@ -534,6 +534,10 @@
   padding: clamp(38px, 6vw, 70px);
 }
 
+.login-panel > .login-form-side:only-child {
+  grid-column: 1 / -1;
+}
+
 .login-form-side h2 {
   margin: 0;
   font-size: 2rem;
@@ -652,6 +656,11 @@
 .auth-switch-link:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.forgot-password-link {
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .register-main {
