@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
-import PublicLayout from "../../components/public/PublicLayout";
+import GuestSignInPrompt from "../../components/auth/GuestSignInPrompt";
 import { listMyRegistrations } from "../../services/registrationService";
 import { getSessionUser } from "../../utils/authSession";
 import { canRegisterForEvents, getDashboardPath } from "../../utils/roleRoutes";
@@ -113,18 +113,11 @@ function RegisteredEventsPage() {
 
   if (!sessionUser) {
     return (
-      <PublicLayout>
-        <main className="registered-events-auth">
-          <div>
-            <p className="public-eyebrow">Event registrations</p>
-            <h1>Sign in to view your registrations.</h1>
-            <p>Your registered competitions will appear here.</p>
-            <Link className="public-button public-button-primary" to="/login">
-              Sign in
-            </Link>
-          </div>
-        </main>
-      </PublicLayout>
+      <GuestSignInPrompt
+        eyebrow="Event registrations"
+        heading="Sign in to view your registrations."
+        subtext="Your registered competitions will appear here."
+      />
     );
   }
 

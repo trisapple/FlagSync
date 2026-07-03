@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
+import GuestSignInPrompt from "../../components/auth/GuestSignInPrompt";
 import { getCurrentUser } from "../../services/authService";
 import {
   changePassword,
@@ -8,6 +9,7 @@ import {
   updateProfile,
 } from "../../services/accountService";
 import { getSessionUser } from "../../utils/authSession";
+import { useSessionUser } from "../../hooks/useSessionUser";
 import "./ProfilePage.css";
 
 const initialProfile = {
@@ -57,6 +59,7 @@ function formatDate(date) {
 
 function ProfilePage() {
   const navigate = useNavigate();
+  const sessionUser = useSessionUser();
   const [profile, setProfile] = useState(createInitialProfile);
   const [passwordForm, setPasswordForm] = useState(initialPasswordForm);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,6 +81,11 @@ function ProfilePage() {
   }
 
   useEffect(() => {
+    if (!sessionUser) {
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     async function loadProfile() {
@@ -110,7 +118,7 @@ function ProfilePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [sessionUser]);
 
   async function handleProfileSubmit(event) {
     event.preventDefault();
@@ -190,6 +198,16 @@ function ProfilePage() {
     } finally {
       setIsDeletingAccount(false);
     }
+  }
+
+  if (!sessionUser) {
+    return (
+      <GuestSignInPrompt
+        eyebrow="Profile"
+        heading="Sign in to view your profile."
+        subtext="Your account details will appear here."
+      />
+    );
   }
 
   const role = formatRole(profile.role_name);

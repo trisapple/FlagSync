@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import GuestSignInPrompt from "../../components/auth/GuestSignInPrompt";
 import { listMyRegistrations } from "../../services/registrationService";
+import { useSessionUser } from "../../hooks/useSessionUser";
 
 const actions = [
   {
@@ -21,10 +23,16 @@ const actions = [
 ];
 
 function UserDashboardPage() {
+  const sessionUser = useSessionUser();
   const [registrations, setRegistrations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!sessionUser) {
+      setIsLoading(false);
+      return;
+    }
+
     let ignore = false;
     listMyRegistrations()
       .then((data) => {
@@ -39,7 +47,17 @@ function UserDashboardPage() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [sessionUser]);
+
+  if (!sessionUser) {
+    return (
+      <GuestSignInPrompt
+        eyebrow="Your competition hub"
+        heading="Sign in to view your dashboard."
+        subtext="Your events, team progress, and activity will appear here."
+      />
+    );
+  }
 
   const registeredCount = registrations.length;
   const activeCount = registrations.filter(

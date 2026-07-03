@@ -212,24 +212,6 @@
   text-decoration: none;
 }
 
-.registered-events-auth {
-  display: grid;
-  min-height: calc(100vh - 178px);
-  padding: 40px;
-  place-items: center;
-  text-align: center;
-}
-
-.registered-events-auth h1 {
-  margin: 0;
-  color: #111827;
-}
-
-.registered-events-auth p:not(.public-eyebrow) {
-  margin: 12px 0 24px;
-  color: #64748b;
-}
-
 @media (max-width: 900px) {
   .registered-events-grid {
     grid-template-columns: 1fr;
