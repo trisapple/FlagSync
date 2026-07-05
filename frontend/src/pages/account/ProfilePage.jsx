@@ -76,7 +76,9 @@ function ProfilePage() {
   const [accountMessage, setAccountMessage] = useState({ type: "", text: "" });
   const [organiserRequest, setOrganiserRequest] = useState(null);
   const [organiserReason, setOrganiserReason] = useState("");
-  const [isLoadingOrganiserRequest, setIsLoadingOrganiserRequest] = useState(true);
+  const [isLoadingOrganiserRequest, setIsLoadingOrganiserRequest] = useState(() =>
+    Boolean(getSessionUser()),
+  );
   const [isSubmittingOrganiserRequest, setIsSubmittingOrganiserRequest] =
     useState(false);
   const [organiserMessage, setOrganiserMessage] = useState({ type: "", text: "" });
@@ -131,7 +133,6 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!sessionUser) {
-      setIsLoadingOrganiserRequest(false);
       return;
     }
 

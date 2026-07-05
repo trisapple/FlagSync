@@ -21,8 +21,7 @@ def get_pending_for_user(
     user_id: uuid.UUID,
 ) -> OrganiserRequest | None:
     return db.scalar(
-        select(OrganiserRequest)
-        .where(
+        select(OrganiserRequest).where(
             OrganiserRequest.user_id == user_id,
             OrganiserRequest.status == "pending",
         ),

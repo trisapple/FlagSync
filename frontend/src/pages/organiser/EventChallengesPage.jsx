@@ -31,7 +31,7 @@ function ChallengeFilesEditor({ eventId, challengeId, onError }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     try {
       const data = await listChallengeFiles(challengeId);
       setFiles(data);
@@ -40,12 +40,12 @@ function ChallengeFilesEditor({ eventId, challengeId, onError }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [challengeId, onError]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFiles();
-  }, [challengeId]);
+  }, [fetchFiles]);
 
   async function handleUpload(event) {
     const file = event.target.files?.[0];
@@ -296,9 +296,7 @@ function EventChallengesPage() {
                   placeholder="flag{example}"
                   required
                 />
-                <small>
-                  Stored as SHA-256 hash. Case-sensitive on submit.
-                </small>
+                <small>Stored securely. Case-sensitive on submit.</small>
               </div>
               <div className="login-field">
                 <label htmlFor="points">Points</label>
