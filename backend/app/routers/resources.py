@@ -131,14 +131,14 @@ async def upload_event_resource(
 
     if file_size > MAX_FILE_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=(f"File exceeds the {MAX_FILE_BYTES // (1024 * 1024)} MB limit."),
         )
 
     current_usage = sum_user_storage_bytes(db, user.user_id)
     if current_usage + file_size > USER_QUOTA_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=(
                 f"Upload would exceed your "
                 f"{USER_QUOTA_BYTES // (1024 * 1024)} MB storage quota."
@@ -148,7 +148,7 @@ async def upload_event_resource(
     current_file_count = count_user_resources(db, user.user_id)
     if current_file_count >= USER_QUOTA_FILE_COUNT:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=(
                 f"Upload would exceed your {USER_QUOTA_FILE_COUNT} file storage quota."
             ),
