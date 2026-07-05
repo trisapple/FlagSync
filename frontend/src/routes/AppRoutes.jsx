@@ -13,6 +13,7 @@ import NotFoundPage from "../pages/errors/NotFoundPage";
 import AdminDashboardPage from "../pages/administrator/AdminDashboardPage";
 import AdminUsersPage from "../pages/administrator/AdminUsersPage";
 import AuditLogsPage from "../pages/administrator/AuditLogsPage";
+import OrganiserRequestsPage from "../pages/administrator/OrganiserRequestsPage";
 import OrganiserDashboardPage from "../pages/organiser/OrganiserDashboardPage";
 import ManageEventsPage from "../pages/organiser/ManageEventsPage";
 import CreateEventPage from "../pages/organiser/CreateEventPage";
@@ -151,6 +152,14 @@ function AppRoutes() {
         element={
           <RequireAuth allowedRoles={["administrator"]}>
             <AuditLogsPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/organiser-requests"
+        element={
+          <RequireAuth allowedRoles={["administrator"]}>
+            <OrganiserRequestsPage />
           </RequireAuth>
         }
       />
