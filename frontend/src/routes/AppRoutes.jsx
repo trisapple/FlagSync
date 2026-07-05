@@ -138,18 +138,47 @@ function AppRoutes() {
         }
       />
       <Route path="/profile" element={<AccountProfilePage />} />
-      <Route path="/admin/users" element={<AdminUsersPage />} />
-      <Route path="/admin/audit-logs" element={<AuditLogsPage />} />
+      <Route
+        path="/admin/users"
+        element={
+          <RequireAuth allowedRoles={["administrator"]}>
+            <AdminUsersPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/audit-logs"
+        element={
+          <RequireAuth allowedRoles={["administrator"]}>
+            <AuditLogsPage />
+          </RequireAuth>
+        }
+      />
       <Route path="/403" element={<ForbiddenPage />} />
       <Route
         path={DASHBOARD_PATHS.administrator}
-        element={<AdminDashboardPage />}
+        element={
+          <RequireAuth allowedRoles={["administrator"]}>
+            <AdminDashboardPage />
+          </RequireAuth>
+        }
       />
       <Route
         path={DASHBOARD_PATHS.organiser}
-        element={<OrganiserDashboardPage />}
+        element={
+          <RequireAuth allowedRoles={["organiser"]}>
+            <OrganiserDashboardPage />
+          </RequireAuth>
+        }
       />
-      <Route path={DASHBOARD_PATHS.user} element={<UserDashboardPage />} />
+      <Route
+        path={DASHBOARD_PATHS.user}
+        element={
+          <RequireAuth allowedRoles={["user"]}>
+            <UserDashboardPage />
+          </RequireAuth>
+        }
+      />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
