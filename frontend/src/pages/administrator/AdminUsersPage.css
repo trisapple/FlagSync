@@ -46,7 +46,7 @@
 .admin-users-preview,
 .admin-users-feedback {
   display: flex;
-  gap: 18px;
+  gap: 1rem;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
@@ -75,12 +75,22 @@
 }
 
 .admin-users-feedback button {
+  flex-shrink: 0;
+  align-self: flex-start;
   padding: 0;
   border: 0;
-  color: inherit;
   background: transparent;
+  color: inherit;
+  font-size: 1rem;
   font-weight: 800;
+  line-height: 1;
   cursor: pointer;
+}
+
+.admin-users-feedback span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .admin-users-panel {
@@ -315,6 +325,14 @@
   background: #f1f5f9;
   font-weight: 700;
   cursor: pointer;
+}
+
+.admin-user-modal .admin-users-feedback {
+  margin: 1rem 4% 0;
+}
+
+.admin-confirm-modal .admin-users-feedback {
+  margin-block: 1rem;
 }
 
 .admin-user-details {
