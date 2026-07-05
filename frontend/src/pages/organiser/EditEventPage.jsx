@@ -3,7 +3,8 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import { getEvent, updateEvent } from "../../services/eventService";
 import { clearSessionUser } from "../../utils/authSession";
-import "./ManageEventsPage.css";
+import "./EventForm.css";
+import "./OrganiserEventLayout.css";
 
 function toLocalInputValue(iso) {
   if (!iso) return "";

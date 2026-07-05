@@ -1,0 +1,277 @@
+.event-challenges-content {
+display: grid;
+  gap: 20px;
+}
+
+.challenge-panel-heading {
+display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 26px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.challenge-panel-heading h2 {
+margin: 0;
+  color: #111827;
+  font-size: 1.05rem;
+}
+
+.challenge-panel-heading p {
+margin: 6px 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.challenge-panel-heading > span {
+display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: #4338ca;
+  background: #eef2ff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.challenge-empty {
+margin: 0;
+  padding: 42px 26px;
+  color: #64748b;
+  text-align: center;
+}
+
+.challenge-row {
+display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+  padding: 24px 26px;
+}
+
+.challenge-row + .challenge-row {
+border-top: 1px solid #e2e8f0;
+}
+
+.challenge-primary h2 {
+margin: 0;
+  color: #111827;
+  font-size: 1rem;
+}
+
+.challenge-description {
+margin: 7px 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.challenge-points {
+margin: 10px 0 0;
+  color: #334155;
+  font-size: 0.82rem;
+}
+
+.challenge-inactive-badge {
+margin-left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #92400e;
+  background: #fef3c7;
+  font-size: 0.7rem;
+}
+
+.announcement-posted-at {
+margin: 12px 0 0;
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.challenge-actions button,
+.challenge-file-list button {
+min-height: 35px;
+  padding: 0 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  background: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.challenge-actions button:hover,
+.challenge-file-list button:hover {
+background: #fef2f2;
+}
+
+.challenge-files {
+margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.challenge-files-heading,
+.challenge-files-empty {
+margin: 0 0 8px;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.challenge-files-empty {
+color: #94a3b8;
+}
+
+.challenge-file-list {
+display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challenge-file-list li {
+display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.78rem;
+}
+
+.challenge-file-size {
+color: #94a3b8;
+}
+
+.challenge-file-upload {
+display: inline-flex;
+  margin-top: 10px;
+  padding: 7px 11px;
+  border-radius: 7px;
+  color: #4338ca;
+  background: #eef2ff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.challenge-file-picker {
+display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 47px;
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.challenge-file-picker > span {
+overflow: hidden;
+  color: #64748b;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-row {
+display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding: 22px 26px;
+}
+
+.resource-row + .resource-row {
+border-top: 1px solid #e2e8f0;
+}
+
+.resource-primary {
+min-width: 0;
+}
+
+.resource-primary h2 {
+overflow: hidden;
+  margin: 0;
+  color: #111827;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-primary p {
+margin: 7px 0 0;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.resource-primary .resource-uploaded-at {
+color: #94a3b8;
+}
+
+.resource-actions {
+display: flex;
+  gap: 8px;
+}
+
+.resource-actions button {
+min-height: 37px;
+  padding: 0 13px;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.resource-download-button {
+border: 1px solid #c7d2fe;
+  color: #4338ca;
+}
+
+.resource-download-button:hover {
+border-color: #818cf8;
+  background: #eef2ff;
+}
+
+.resource-delete-button {
+border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.resource-delete-button:hover {
+background: #fef2f2;
+}
+
+@media (max-width: 1050px) {
+.resource-row {
+grid-template-columns: 1fr;
+    padding-inline: 18px;
+}
+
+.resource-actions button {
+flex: 1;
+}
+}
+
+@media (max-width: 650px) {
+.challenge-panel-heading,
+  .challenge-row {
+padding-inline: 18px;
+}
+
+.challenge-row {
+grid-template-columns: 1fr;
+}
+
+.challenge-actions button {
+width: 100%;
+}
+}

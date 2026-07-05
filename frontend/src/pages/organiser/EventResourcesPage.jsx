@@ -9,7 +9,9 @@ import {
   uploadResource,
 } from "../../services/resourceService";
 import { clearSessionUser } from "../../utils/authSession";
-import "./ManageEventsPage.css";
+import "./EventContentPage.css";
+import "./EventForm.css";
+import "./OrganiserEventLayout.css";
 
 function formatBytes(bytes) {
   if (bytes === null || bytes === undefined) return "—";

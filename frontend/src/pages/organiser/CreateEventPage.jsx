@@ -4,7 +4,8 @@ import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import { useSessionUser } from "../../hooks/useSessionUser";
 import { createEvent } from "../../services/eventService";
 import { getDashboardPath } from "../../utils/roleRoutes";
-import "./ManageEventsPage.css";
+import "./EventForm.css";
+import "./OrganiserEventLayout.css";
 
 function getRoleName(role) {
   return typeof role === "string" ? role : (role?.role_name ?? role?.name ?? "");

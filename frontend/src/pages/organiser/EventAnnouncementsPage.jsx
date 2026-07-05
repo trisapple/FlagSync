@@ -16,7 +16,9 @@ import {
 import { getEvent } from "../../services/eventService";
 import { clearSessionUser } from "../../utils/authSession";
 import { getDashboardPath } from "../../utils/roleRoutes";
-import "./ManageEventsPage.css";
+import "./EventContentPage.css";
+import "./EventForm.css";
+import "./OrganiserEventLayout.css";
 
 function getRoleName(role) {
   return typeof role === "string" ? role : (role?.role_name ?? role?.name ?? "");

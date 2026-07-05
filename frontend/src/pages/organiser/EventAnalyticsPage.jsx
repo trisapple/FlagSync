@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import { getEvent, getEventAnalytics } from "../../services/eventService";
 import { clearSessionUser } from "../../utils/authSession";
-import "./ManageEventsPage.css";
+import "./EventAnalyticsPage.css";
+import "./OrganiserEventLayout.css";
 
 function EventAnalyticsPage() {
   const { eventId } = useParams();

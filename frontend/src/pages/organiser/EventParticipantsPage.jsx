@@ -6,6 +6,7 @@ import { listEventParticipants } from "../../services/registrationService";
 import { listEventTeams } from "../../services/teamService";
 import { clearSessionUser } from "../../utils/authSession";
 import "./ManageEventsPage.css";
+import "./OrganiserEventLayout.css";
 
 function EventParticipantsPage() {
   const { eventId } = useParams();

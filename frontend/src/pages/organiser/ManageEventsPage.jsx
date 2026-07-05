@@ -12,6 +12,7 @@ import {
 } from "../../utils/eventPresentation";
 import { getDashboardPath } from "../../utils/roleRoutes";
 import "./ManageEventsPage.css";
+import "./OrganiserEventLayout.css";
 
 function getRoleName(role) {
   return typeof role === "string" ? role : (role?.role_name ?? role?.name ?? "");
