@@ -70,11 +70,11 @@ function EventAnalyticsPage() {
         </header>
 
         {isLoading ? (
-          <section className="manage-events-panel">
+          <section className="manage-events-panel analytics-state-panel">
             <p>Loading analytics...</p>
           </section>
         ) : errorMessage ? (
-          <section className="manage-events-panel">
+          <section className="manage-events-panel analytics-state-panel">
             <p
               className="login-status login-status-error"
               role="alert"
@@ -87,10 +87,12 @@ function EventAnalyticsPage() {
             </p>
           </section>
         ) : (
-          <section
-            className="manage-events-stats"
-            aria-label="Event totals"
-          >
+          <section className="manage-events-panel analytics-overview">
+            <div className="analytics-overview-heading">
+              <h2>Performance overview</h2>
+              <p>A snapshot of participation and activity for this event.</p>
+            </div>
+            <div className="analytics-stats" aria-label="Event totals">
             <article>
               <span>Total registrations</span>
               <strong>{analytics?.total_registrations ?? 0}</strong>
@@ -111,6 +113,7 @@ function EventAnalyticsPage() {
               <span>Resource downloads</span>
               <strong>{analytics?.resource_downloads ?? 0}</strong>
             </article>
+            </div>
           </section>
         )}
       </main>

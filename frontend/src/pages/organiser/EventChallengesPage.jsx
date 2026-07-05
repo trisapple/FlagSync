@@ -71,49 +71,29 @@ function ChallengeFilesEditor({ eventId, challengeId, onError }) {
   }
 
   return (
-    <div style={{ marginTop: 12 }}>
-      <p style={{ margin: "0 0 8px", fontSize: 13, color: "#64748b" }}>
+    <div className="challenge-files">
+      <p className="challenge-files-heading">
         Attached files ({files.length})
       </p>
       {isLoading ? (
-        <p style={{ margin: 0, fontSize: 13 }}>Loading files...</p>
+        <p className="challenge-files-empty">Loading files...</p>
       ) : files.length === 0 ? (
-        <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>
+        <p className="challenge-files-empty">
           No files attached yet.
         </p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        <ul className="challenge-file-list">
           {files.map((file) => (
-            <li
-              key={file.resource_id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "6px 12px",
-                background: "#f8fafc",
-                borderRadius: 6,
-                marginBottom: 4,
-                fontSize: 13,
-              }}
-            >
+            <li key={file.resource_id}>
               <span>
                 {file.file_name}{" "}
-                <span style={{ color: "#94a3b8" }}>
+                <span className="challenge-file-size">
                   ({formatBytes(file.file_size)})
                 </span>
               </span>
               <button
                 type="button"
                 onClick={() => handleDelete(file.resource_id, file.file_name)}
-                style={{
-                  padding: "4px 10px",
-                  border: "1px solid #cbd5e1",
-                  background: "white",
-                  borderRadius: 4,
-                  cursor: "pointer",
-                  fontSize: 12,
-                }}
               >
                 Remove
               </button>
@@ -121,19 +101,7 @@ function ChallengeFilesEditor({ eventId, challengeId, onError }) {
           ))}
         </ul>
       )}
-      <label
-        style={{
-          display: "inline-block",
-          marginTop: 8,
-          padding: "6px 12px",
-          background: "#eef2ff",
-          color: "#4338ca",
-          borderRadius: 6,
-          cursor: isUploading ? "wait" : "pointer",
-          fontSize: 13,
-          fontWeight: 600,
-        }}
-      >
+      <label className="challenge-file-upload">
         {isUploading ? "Uploading..." : "+ Add file"}
         <input
           type="file"
@@ -283,12 +251,13 @@ function EventChallengesPage() {
           </p>
         )}
 
-        <section
-          className="manage-events-panel"
-          style={{ padding: "28px 32px" }}
-        >
-          <h2 style={{ marginTop: 0 }}>Add a new challenge</h2>
-          <form className="login-form" onSubmit={handleCreate}>
+        <div className="event-challenges-content">
+        <section className="manage-events-panel challenge-panel">
+          <div className="challenge-panel-heading">
+            <h2>Add a new challenge</h2>
+            <p>Define the task, flag, score, and any files participants need.</p>
+          </div>
+          <form className="create-event-form" onSubmit={handleCreate}>
             <div className="login-field">
               <label htmlFor="title">Title</label>
               <input
@@ -313,7 +282,7 @@ function EventChallengesPage() {
                 onChange={handleChange}
               />
             </div>
-            <div className="register-password-grid">
+            <div className="create-event-field-grid">
               <div className="login-field">
                 <label htmlFor="flag">Flag (secret)</label>
                 <input
@@ -325,7 +294,7 @@ function EventChallengesPage() {
                   placeholder="flag{example}"
                   required
                 />
-                <small style={{ color: "#64748b" }}>
+                <small>
                   Stored as SHA-256 hash. Case-sensitive on submit.
                 </small>
               </div>
@@ -347,70 +316,65 @@ function EventChallengesPage() {
               <label htmlFor="challenge_files">
                 Attach files (optional)
               </label>
-              <input
-                id="challenge_files"
-                type="file"
-                multiple
-                onChange={(event) =>
-                  setSelectedFiles(Array.from(event.target.files ?? []))
-                }
-              />
-              <small style={{ color: "#64748b" }}>
+              <div className="challenge-file-picker">
+                <label htmlFor="challenge_files">Choose files</label>
+                <span>
+                  {selectedFiles.length === 0
+                    ? "No files selected"
+                    : `${selectedFiles.length} file${
+                        selectedFiles.length === 1 ? "" : "s"
+                      } selected`}
+                </span>
+                <input
+                  id="challenge_files"
+                  type="file"
+                  multiple
+                  onChange={(event) =>
+                    setSelectedFiles(Array.from(event.target.files ?? []))
+                  }
+                />
+              </div>
+              <small>
                 PDF, PNG, JPEG, GIF, ZIP, or plain text. 50 MB per file.
               </small>
-              {selectedFiles.length > 0 && (
-                <p style={{ fontSize: 13, margin: "8px 0 0" }}>
-                  {selectedFiles.length} file
-                  {selectedFiles.length === 1 ? "" : "s"} selected
-                </p>
-              )}
             </div>
-            <button
-              className="public-button public-button-primary login-submit"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create challenge"}
-            </button>
+            <div className="create-event-actions">
+              <button
+                className="create-event-primary-button"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creating..." : "Create challenge"}
+              </button>
+            </div>
           </form>
         </section>
 
-        <section
-          className="manage-events-panel"
-          style={{ padding: "28px 32px" }}
-        >
-          <h2 style={{ marginTop: 0 }}>
-            Existing challenges ({challenges.length})
-          </h2>
+        <section className="manage-events-panel challenge-panel">
+          <div className="challenge-panel-heading">
+            <h2>Existing challenges</h2>
+            <span>{challenges.length}</span>
+          </div>
           {isLoading ? (
             <p>Loading...</p>
           ) : challenges.length === 0 ? (
-            <p style={{ color: "#64748b" }}>No challenges yet.</p>
+            <p className="challenge-empty">No challenges yet.</p>
           ) : (
             <div className="manage-events-list">
               {challenges.map((challenge) => (
                 <article
-                  className="manage-event-row"
+                  className="challenge-row"
                   key={challenge.challenge_id}
                 >
-                  <div className="manage-event-primary">
+                  <div className="challenge-primary">
                     <h2>{challenge.title}</h2>
-                    <p style={{ whiteSpace: "pre-wrap" }}>
+                    <p className="challenge-description">
                       {challenge.description}
                     </p>
-                    <p style={{ marginTop: 8 }}>
+                    <p className="challenge-points">
                       <strong>{challenge.points} points</strong>
                       {!challenge.is_active && (
-                        <span
-                          style={{
-                            marginLeft: 8,
-                            padding: "2px 8px",
-                            background: "#fef3c7",
-                            color: "#92400e",
-                            borderRadius: 999,
-                            fontSize: 12,
-                          }}
-                        >
+                        <span className="challenge-inactive-badge">
                           Inactive
                         </span>
                       )}
@@ -423,7 +387,7 @@ function EventChallengesPage() {
                       }
                     />
                   </div>
-                  <div className="manage-event-actions">
+                  <div className="challenge-actions">
                     <button
                       type="button"
                       onClick={() =>
@@ -438,6 +402,7 @@ function EventChallengesPage() {
             </div>
           )}
         </section>
+        </div>
       </main>
     </div>
   );

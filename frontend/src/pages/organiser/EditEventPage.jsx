@@ -141,10 +141,15 @@ function EditEventPage() {
           </div>
         </header>
 
-        <section className="manage-events-panel">
-          <form className="login-form" onSubmit={handleSubmit}>
+        <section className="manage-events-panel create-event-panel">
+          <div className="create-event-panel-heading">
+            <h2>Event details</h2>
+            <p>Fields marked with an asterisk are required.</p>
+          </div>
+
+          <form className="create-event-form" onSubmit={handleSubmit}>
             <div className="login-field">
-              <label htmlFor="event_name">Event name</label>
+              <label htmlFor="event_name">Event name *</label>
               <input
                 id="event_name"
                 name="event_name"
@@ -169,26 +174,28 @@ function EditEventPage() {
               />
             </div>
 
-            <div className="register-password-grid">
+            <div className="create-event-field-grid">
               <div className="login-field">
-                <label htmlFor="event_type">Type</label>
+                <label htmlFor="event_type">Type *</label>
                 <select
                   id="event_type"
                   name="event_type"
                   value={form.event_type}
                   onChange={handleChange}
+                  required
                 >
                   <option value="ctf">CTF</option>
                   <option value="hackathon">Hackathon</option>
                 </select>
               </div>
               <div className="login-field">
-                <label htmlFor="event_format">Format</label>
+                <label htmlFor="event_format">Format *</label>
                 <select
                   id="event_format"
                   name="event_format"
                   value={form.event_format}
                   onChange={handleChange}
+                  required
                 >
                   <option value="online">Online</option>
                   <option value="hybrid">Hybrid</option>
@@ -198,7 +205,7 @@ function EditEventPage() {
             </div>
 
             <div className="login-field">
-              <label htmlFor="location">Location</label>
+              <label htmlFor="location">Location *</label>
               <input
                 id="location"
                 name="location"
@@ -210,9 +217,9 @@ function EditEventPage() {
               />
             </div>
 
-            <div className="register-password-grid">
+            <div className="create-event-field-grid">
               <div className="login-field">
-                <label htmlFor="start_date">Start date &amp; time</label>
+                <label htmlFor="start_date">Start date &amp; time *</label>
                 <input
                   id="start_date"
                   name="start_date"
@@ -223,7 +230,7 @@ function EditEventPage() {
                 />
               </div>
               <div className="login-field">
-                <label htmlFor="end_date">End date &amp; time</label>
+                <label htmlFor="end_date">End date &amp; time *</label>
                 <input
                   id="end_date"
                   name="end_date"
@@ -236,7 +243,7 @@ function EditEventPage() {
             </div>
 
             <div className="login-field">
-              <label htmlFor="registration_deadline">Registration deadline</label>
+              <label htmlFor="registration_deadline">Registration deadline *</label>
               <input
                 id="registration_deadline"
                 name="registration_deadline"
@@ -247,9 +254,9 @@ function EditEventPage() {
               />
             </div>
 
-            <div className="register-password-grid">
+            <div className="create-event-field-grid">
               <div className="login-field">
-                <label htmlFor="capacity">Capacity</label>
+                <label htmlFor="capacity">Capacity (optional)</label>
                 <input
                   id="capacity"
                   name="capacity"
@@ -260,7 +267,7 @@ function EditEventPage() {
                 />
               </div>
               <div className="login-field">
-                <label htmlFor="max_team_size">Max team size</label>
+                <label htmlFor="max_team_size">Max team size *</label>
                 <input
                   id="max_team_size"
                   name="max_team_size"
@@ -274,12 +281,13 @@ function EditEventPage() {
             </div>
 
             <div className="login-field">
-              <label htmlFor="status">Status</label>
+              <label htmlFor="status">Status *</label>
               <select
                 id="status"
                 name="status"
                 value={form.status}
                 onChange={handleChange}
+                required
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -288,27 +296,31 @@ function EditEventPage() {
               </select>
             </div>
 
-            <div className="login-field">
-              <label>
+            <div className="create-event-options">
+              <label className="create-event-option">
                 <input
                   type="checkbox"
                   name="team_mode"
                   checked={form.team_mode}
                   onChange={handleChange}
-                />{" "}
-                Team mode
+                />
+                <span>
+                  <strong>Team mode</strong>
+                  <small>Allow participants to compete in teams.</small>
+                </span>
               </label>
-            </div>
 
-            <div className="login-field">
-              <label>
+              <label className="create-event-option">
                 <input
                   type="checkbox"
                   name="leaderboard_visible"
                   checked={form.leaderboard_visible}
                   onChange={handleChange}
-                />{" "}
-                Leaderboard visible
+                />
+                <span>
+                  <strong>Visible leaderboard</strong>
+                  <small>Show rankings to event participants.</small>
+                </span>
               </label>
             </div>
 
@@ -321,13 +333,23 @@ function EditEventPage() {
               </p>
             )}
 
-            <button
-              className="public-button public-button-primary login-submit"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Saving..." : "Save changes"}
-            </button>
+            <div className="create-event-actions">
+              <button
+                className="create-event-secondary-button"
+                type="button"
+                onClick={() => navigate("/organiser/events/manage")}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="create-event-primary-button"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save changes"}
+              </button>
+            </div>
           </form>
         </section>
       </main>

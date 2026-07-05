@@ -158,11 +158,17 @@ function EventAnnouncementsPage() {
           </p>
         )}
 
-        <section className="manage-events-panel">
-          <h2>Post a new announcement</h2>
-          <form className="login-form" onSubmit={handleCreate}>
+        <div className="event-challenges-content">
+        <section className="manage-events-panel challenge-panel">
+          <div className="challenge-panel-heading">
+            <div>
+              <h2>Post a new announcement</h2>
+              <p>Share an update with everyone registered for this event.</p>
+            </div>
+          </div>
+          <form className="create-event-form" onSubmit={handleCreate}>
             <div className="login-field">
-              <label htmlFor="title">Title</label>
+              <label htmlFor="title">Title *</label>
               <input
                 id="title"
                 name="title"
@@ -175,7 +181,7 @@ function EventAnnouncementsPage() {
               />
             </div>
             <div className="login-field">
-              <label htmlFor="content">Content</label>
+              <label htmlFor="content">Content *</label>
               <textarea
                 id="content"
                 name="content"
@@ -186,39 +192,44 @@ function EventAnnouncementsPage() {
                 required
               />
             </div>
-            <button
-              className="public-button public-button-primary login-submit"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Posting..." : "Post announcement"}
-            </button>
+            <div className="create-event-actions">
+              <button
+                className="create-event-primary-button"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Posting..." : "Post announcement"}
+              </button>
+            </div>
           </form>
         </section>
 
-        <section className="manage-events-panel">
-          <h2>Previous announcements ({announcements.length})</h2>
+        <section className="manage-events-panel challenge-panel">
+          <div className="challenge-panel-heading">
+            <h2>Previous announcements</h2>
+            <span>{announcements.length}</span>
+          </div>
           {isLoading ? (
-            <p>Loading...</p>
+            <p className="challenge-empty">Loading...</p>
           ) : announcements.length === 0 ? (
-            <p>No announcements yet.</p>
+            <p className="challenge-empty">No announcements yet.</p>
           ) : (
             <div className="manage-events-list">
               {announcements.map((announcement) => (
                 <article
-                  className="manage-event-row"
+                  className="challenge-row"
                   key={announcement.announcement_id}
                 >
-                  <div className="manage-event-primary">
+                  <div className="challenge-primary">
                     <h2>{announcement.title}</h2>
-                    <p style={{ whiteSpace: "pre-wrap" }}>
+                    <p className="challenge-description">
                       {announcement.content}
                     </p>
-                    <p style={{ marginTop: 12, color: "#64748b", fontSize: 14 }}>
+                    <p className="announcement-posted-at">
                       Posted {new Date(announcement.created_at).toLocaleString()}
                     </p>
                   </div>
-                  <div className="manage-event-actions">
+                  <div className="challenge-actions">
                     <button
                       type="button"
                       onClick={() => handleDelete(announcement.announcement_id)}
@@ -231,6 +242,7 @@ function EventAnnouncementsPage() {
             </div>
           )}
         </section>
+        </div>
       </main>
     </div>
   );

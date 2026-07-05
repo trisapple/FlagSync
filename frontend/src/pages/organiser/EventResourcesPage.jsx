@@ -149,56 +149,72 @@ function EventResourcesPage() {
           </p>
         )}
 
-        <section className="manage-events-panel">
-          <h2>Upload a new file</h2>
-          <form className="login-form" onSubmit={handleUpload}>
+        <div className="event-challenges-content">
+        <section className="manage-events-panel challenge-panel">
+          <div className="challenge-panel-heading">
+            <div>
+              <h2>Upload a new file</h2>
+              <p>Add supporting material for event participants.</p>
+            </div>
+          </div>
+          <form className="create-event-form" onSubmit={handleUpload}>
             <div className="login-field">
               <label htmlFor="resource-file">File</label>
-              <input
-                id="resource-file"
-                name="file"
-                type="file"
-                onChange={(event) =>
-                  setSelectedFile(event.target.files?.[0] ?? null)
-                }
-                required
-              />
-              <small style={{ color: "#64748b" }}>
+              <div className="challenge-file-picker">
+                <label htmlFor="resource-file">Choose file</label>
+                <span>{selectedFile?.name ?? "No file selected"}</span>
+                <input
+                  id="resource-file"
+                  name="file"
+                  type="file"
+                  onChange={(event) =>
+                    setSelectedFile(event.target.files?.[0] ?? null)
+                  }
+                  required
+                />
+              </div>
+              <small>
                 Allowed: PDF, PNG, JPEG, GIF, ZIP, plain text
               </small>
             </div>
-            <button
-              className="public-button public-button-primary login-submit"
-              type="submit"
-              disabled={isUploading || !selectedFile}
-            >
-              {isUploading ? "Uploading..." : "Upload"}
-            </button>
+            <div className="create-event-actions">
+              <button
+                className="create-event-primary-button"
+                type="submit"
+                disabled={isUploading || !selectedFile}
+              >
+                {isUploading ? "Uploading..." : "Upload file"}
+              </button>
+            </div>
           </form>
         </section>
 
-        <section className="manage-events-panel">
-          <h2>Existing resources ({resources.length})</h2>
+        <section className="manage-events-panel challenge-panel">
+          <div className="challenge-panel-heading">
+            <h2>Existing resources</h2>
+            <span>{resources.length}</span>
+          </div>
           {isLoading ? (
-            <p>Loading...</p>
+            <p className="challenge-empty">Loading...</p>
           ) : resources.length === 0 ? (
-            <p>No resources uploaded yet.</p>
+            <p className="challenge-empty">No resources uploaded yet.</p>
           ) : (
-            <div className="manage-events-list">
+            <div className="resource-list">
               {resources.map((resource) => (
-                <article className="manage-event-row" key={resource.resource_id}>
-                  <div className="manage-event-primary">
+                <article className="resource-row" key={resource.resource_id}>
+                  <div className="resource-primary">
                     <h2>{resource.file_name}</h2>
                     <p>
                       {resource.mime_type ?? "unknown type"} ·{" "}
                       {formatBytes(resource.file_size)}
                     </p>
-                    <p style={{ color: "#64748b", fontSize: 14 }}>
+                    <p className="resource-uploaded-at">
                       Uploaded {new Date(resource.uploaded_at).toLocaleString()}
                     </p>
                   </div>
-                  <div className="manage-event-actions">
+                  <div className="resource-actions">
                     <button
+                      className="resource-download-button"
                       type="button"
                       onClick={() =>
                         handleDownload(resource.resource_id, resource.file_name)
@@ -207,6 +223,7 @@ function EventResourcesPage() {
                       Download
                     </button>
                     <button
+                      className="resource-delete-button"
                       type="button"
                       onClick={() =>
                         handleDelete(resource.resource_id, resource.file_name)
@@ -220,6 +237,7 @@ function EventResourcesPage() {
             </div>
           )}
         </section>
+        </div>
       </main>
     </div>
   );
