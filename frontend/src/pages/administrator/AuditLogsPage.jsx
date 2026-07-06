@@ -65,7 +65,7 @@ function AuditLogsPage() {
           action_type: appliedFilters.actionType.trim() || undefined,
           result:
             appliedFilters.result === "all" ? undefined : appliedFilters.result,
-          actor: appliedFilters.actor.trim() || undefined,
+          actor_user_id: appliedFilters.actor.trim() || undefined,
           date_from: appliedFilters.dateFrom || undefined,
           date_to: appliedFilters.dateTo || undefined,
           page,
@@ -160,7 +160,7 @@ function AuditLogsPage() {
               <input
                 id="audit-actor-filter"
                 type="search"
-                placeholder="User ID or email"
+                placeholder="User ID"
                 value={filters.actor}
                 onChange={(event) => updateFilter("actor", event.target.value)}
               />

@@ -121,9 +121,12 @@ def get_users_paginated(
     return users, total
 
 
-def count_active_administrators(db: Session) -> int:
-    from app.models.role import Role
+def count_users(db: Session) -> int:
+    statement = select(func.count()).select_from(User)
+    return int(db.scalar(statement) or 0)
 
+
+def count_active_administrators(db: Session) -> int:
     statement = select(func.count()).select_from(
         select(User)
         .join(Role, User.role_id == Role.role_id)

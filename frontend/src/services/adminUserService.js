@@ -20,3 +20,8 @@ export async function updateAdminUserRole(userId, roleName, reason) {
   });
   return response.data;
 }
+
+export async function getAdminStats() {
+  const response = await apiClient.get("/admin/stats");
+  return response.data;
+}

@@ -155,6 +155,8 @@ function AdminUsersPage() {
   }
 
   function requestAction(user, kind, value) {
+    setFeedback(null);
+
     const isFinalAdministratorAction =
       user.role_name === "administrator" &&
       user.account_status === "active" &&
@@ -177,6 +179,7 @@ function AdminUsersPage() {
 
   function closeConfirmation() {
     if (isApplying) return;
+    setFeedback(null);
     setConfirmation(null);
     setConfirmationReason("");
     setSelfConfirmation("");
@@ -279,7 +282,7 @@ function AdminUsersPage() {
           </div>
         )}
 
-        {feedback && (
+        {feedback && !selectedUser && !confirmation && (
           <div className={`admin-users-feedback admin-users-${feedback.type}`}>
             <span>{feedback.text}</span>
             <button type="button" onClick={() => setFeedback(null)}>
@@ -387,7 +390,7 @@ function AdminUsersPage() {
                         <button
                           className="admin-user-view"
                           type="button"
-                          onClick={() => setSelectedUser(user)}
+                          onClick={() => { setFeedback(null); setSelectedUser(user); }}
                         >
                           View
                         </button>
@@ -424,22 +427,32 @@ function AdminUsersPage() {
       </main>
 
       {selectedUser && (
-        <div className="admin-modal-backdrop" role="presentation">
+        <div className="admin-modal-backdrop" role="presentation" onClick={() => { if (!isApplying) { setFeedback(null); setSelectedUser(null); }}}>
           <section
             className="admin-user-modal"
             role="dialog"
             aria-modal="true"
             aria-labelledby="admin-user-modal-title"
+            onClick={(e) => e.stopPropagation()}
           >
             <header>
               <div>
                 <p className="dashboard-eyebrow">User details</p>
                 <h2 id="admin-user-modal-title">{selectedUser.display_name}</h2>
               </div>
-              <button type="button" onClick={() => setSelectedUser(null)}>
+              <button type="button" onClick={() => { setFeedback(null); setSelectedUser(null); }}>
                 Close
               </button>
             </header>
+
+            {feedback && !confirmation && (
+              <div className={`admin-users-feedback admin-users-${feedback.type}`}>
+                <span>{feedback.text}</span>
+                <button type="button" onClick={() => setFeedback(null)}>
+                  Dismiss
+                </button>
+              </div>
+            )}
 
             <dl className="admin-user-details">
               <div>
@@ -536,17 +549,27 @@ function AdminUsersPage() {
       )}
 
       {confirmation && (
-        <div className="admin-modal-backdrop admin-confirm-backdrop">
+        <div className="admin-modal-backdrop admin-confirm-backdrop" onClick={closeConfirmation}>
           <section
             className="admin-confirm-modal"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="admin-confirm-title"
+            onClick={(e) => e.stopPropagation()}
           >
             <p className="dashboard-eyebrow">Confirmation required</p>
             <h2 id="admin-confirm-title">Confirm account change</h2>
+
+            {feedback && (
+              <div className={`admin-users-feedback admin-users-${feedback.type}`}>
+                <span>{feedback.text}</span>
+                <button type="button" onClick={() => setFeedback(null)}>
+                  Dismiss
+                </button>
+              </div>
+            )}
             <p>
-              Change <strong>{confirmation.user.display_name}</strong>’s{" "}
+              Change <strong>{confirmation.user.display_name}</strong>'s{" "}
               {confirmation.kind} to <strong>{confirmation.value}</strong>?
             </p>
 
