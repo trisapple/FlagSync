@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, func as sql_func
 from sqlalchemy.orm import Session
 
 from app.models.event import Event
@@ -35,10 +35,18 @@ def count_events_by_status(
     organiser_id: uuid.UUID,
     status_value: str,
 ) -> int:
-    from sqlalchemy import func as sql_func
-
     statement = select(sql_func.count()).where(
         Event.organiser_id == organiser_id,
+        Event.status == status_value,
+    )
+    return int(db.scalar(statement) or 0)
+
+
+def count_events_platform_wide(
+    db: Session,
+    status_value: str,
+) -> int:
+    statement = select(sql_func.count()).where(
         Event.status == status_value,
     )
     return int(db.scalar(statement) or 0)
@@ -49,8 +57,6 @@ def count_upcoming_events(
     organiser_id: uuid.UUID,
     now: datetime,
 ) -> int:
-    from sqlalchemy import func as sql_func
-
     statement = select(sql_func.count()).where(
         Event.organiser_id == organiser_id,
         Event.start_date > now,

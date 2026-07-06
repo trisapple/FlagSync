@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, func
 from sqlalchemy.orm import Session
 
 from app.models.organiser_request import OrganiserRequest
@@ -49,6 +49,21 @@ def list_requests(
     if status is not None:
         statement = statement.where(OrganiserRequest.status == status)
     return list(db.scalars(statement).all())
+
+
+def count_requests(
+    db: Session,
+    *,
+    status: str | None = None,
+) -> int:
+    statement = select(func.count()).select_from(OrganiserRequest)
+
+    if status is not None:
+        statement = statement.where(
+            OrganiserRequest.status == status,
+        )
+
+    return int(db.scalar(statement) or 0)
 
 
 def create_request(

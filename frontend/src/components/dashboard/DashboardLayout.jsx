@@ -9,6 +9,7 @@ function DashboardLayout({
   description,
   stats,
   actions,
+  activity,
 }) {
   return (
     <div className="dashboard-shell">
@@ -62,6 +63,33 @@ function DashboardLayout({
             ))}
           </div>
         </section>
+
+        {activity && (
+          <section className="dashboard-section" id="activity">
+            <div className="dashboard-section-heading">
+              <div>
+                <p className="dashboard-eyebrow">Recent activity</p>
+                <h2>Audit log</h2>
+              </div>
+            </div>
+
+            <div className="dashboard-activity-list">
+              {activity.length > 0 ? (
+                activity.map((item, index) => (
+                  <article className="dashboard-activity-item" key={index}>
+                    <div>
+                      <h3>{item.title}</h3>
+                      <p>{item.description}</p>
+                    </div>
+                    <time>{item.time}</time>
+                  </article>
+                ))
+              ) : (
+                <p className="dashboard-empty">No recent activity</p>
+              )}
+            </div>
+          </section>
+        )}
 
       </main>
     </div>

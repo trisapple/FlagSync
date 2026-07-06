@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import { getAdminUsers } from "../../services/adminUserService";
+import { getAdminStats } from "../../services/adminUserService";
 import { getAuditLogs } from "../../services/auditLogService";
 import { formatAuditAction } from "../../utils/auditLogPresentation";
 
-const ACTIONS = [
+const actions = [
   {
     icon: "U",
     title: "Manage users",
@@ -36,21 +36,32 @@ function timeAgo(isoString) {
 
 function AdminDashboardPage() {
   const [totalUsers, setTotalUsers] = useState("—");
+  const [activeEvents, setActiveEvents] = useState("—");
+  const [pendingReviews, setPendingReviews] = useState("—");
   const [activeAdminCount, setActiveAdminCount] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
-    getAdminUsers({ page: 1, page_size: 1 })
+    getAdminStats()
       .then((response) => {
         setTotalUsers(
-          (response.total ?? "—").toLocaleString(),
+          (response.total_users ?? "—").toLocaleString(),
         );
-        if (response.active_administrator_count != null) {
-          setActiveAdminCount(response.active_administrator_count);
-        }
+        setActiveEvents(
+          (response.active_events ?? "—").toLocaleString(),
+        );
+        setPendingReviews(
+          (response.pending_reviews ?? "—").toLocaleString(),
+        );
+        setActiveAdminCount(
+          response.active_administrators ?? null,
+        );
       })
       .catch(() => {
         setTotalUsers("—");
+        setActiveEvents("—");
+        setPendingReviews("—");
+        setActiveAdminCount(null);
       });
   }, []);
 
@@ -84,13 +95,13 @@ function AdminDashboardPage() {
     },
     {
       label: "Active events",
-      value: "—",
-      detail: "—",
+      value: activeEvents,
+      detail: "published competitions",
     },
     {
       label: "Pending reviews",
-      value: "—",
-      detail: "—",
+      value: pendingReviews,
+      detail: "awaiting approval",
     },
   ];
 
@@ -104,9 +115,9 @@ function AdminDashboardPage() {
       role="Administrator"
       eyebrow="Platform control"
       title="Administrator dashboard"
-      description="Manage users, oversee events, and keep the FlagSync platform running smoothly."
+      description="Manage users, monitor activities, and keep the FlagSync platform running smoothly."
       stats={stats}
-      actions={ACTIONS}
+      actions={actions}
       activity={activity}
     />
   );

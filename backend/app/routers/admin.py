@@ -12,8 +12,11 @@ from app.repositories.audit_log_repository import (
     count_audit_logs_before,
     get_audit_logs_paginated,
 )
+from app.repositories.event_repository import count_events_platform_wide
+from app.repositories.organiser_request_repository import count_requests
 from app.repositories.role_repository import get_role_by_name
 from app.repositories.user_repository import (
+    count_users,
     count_active_administrators,
     deactivate_user,
     get_user_by_id,
@@ -389,3 +392,38 @@ def get_audit_log_retention_status(
         archive_eligible_before=cutoff,
         archive_eligible_count=eligible_count,
     )
+
+
+@router.get("/stats")
+def get_admin_dashboard_stats(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    require_roles(request, db, {"administrator"})
+
+    try:
+        total_users = count_users(db)
+        active_administrators = count_active_administrators(db)
+
+        active_events = count_events_platform_wide(
+            db,
+            status_value="published",
+        )
+
+        pending_requests = count_requests(
+            db,
+            status="pending",
+        )
+
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to retrieve dashboard statistics",
+        )
+
+    return {
+        "total_users": total_users,
+        "active_administrators": active_administrators,
+        "active_events": active_events,
+        "pending_reviews": pending_requests,
+    }
