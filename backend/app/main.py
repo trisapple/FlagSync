@@ -31,6 +31,10 @@ from app.routers.challenges import (
     event_challenges_router,
 )
 from app.routers.leaderboard import router as leaderboard_router
+from app.routers.organiser_requests import (
+    admin_router as organiser_requests_admin_router,
+    user_router as organiser_requests_user_router,
+)
 from app.routers.resources import (
     event_resource_router,
     resource_router,
@@ -100,6 +104,8 @@ app.include_router(leaderboard_router)
 app.include_router(analytics_router)
 app.include_router(audit_logs_router)
 app.include_router(admin_router)
+app.include_router(organiser_requests_user_router)
+app.include_router(organiser_requests_admin_router)
 
 
 def startup_database() -> None:

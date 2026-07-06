@@ -82,6 +82,14 @@ function DashboardSidebar({ activePage = "dashboard" }) {
             </Link>
             <Link
               className={`dashboard-nav-link ${
+                activePage === "organiser-requests" ? "active" : ""
+              }`}
+              to="/admin/organiser-requests"
+            >
+              Organiser requests
+            </Link>
+            <Link
+              className={`dashboard-nav-link ${
                 activePage === "audit-logs" ? "active" : ""
               }`}
               to="/admin/audit-logs"

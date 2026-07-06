@@ -8,6 +8,10 @@ import {
   deleteAccount,
   updateProfile,
 } from "../../services/accountService";
+import {
+  getMyOrganiserRequest,
+  submitOrganiserRequest,
+} from "../../services/organiserRequestService";
 import { getSessionUser } from "../../utils/authSession";
 import { useSessionUser } from "../../hooks/useSessionUser";
 import "./ProfilePage.css";
@@ -70,6 +74,14 @@ function ProfilePage() {
   const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
   const [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" });
   const [accountMessage, setAccountMessage] = useState({ type: "", text: "" });
+  const [organiserRequest, setOrganiserRequest] = useState(null);
+  const [organiserReason, setOrganiserReason] = useState("");
+  const [isLoadingOrganiserRequest, setIsLoadingOrganiserRequest] = useState(() =>
+    Boolean(getSessionUser()),
+  );
+  const [isSubmittingOrganiserRequest, setIsSubmittingOrganiserRequest] =
+    useState(false);
+  const [organiserMessage, setOrganiserMessage] = useState({ type: "", text: "" });
 
   function redirectToLogin(message) {
     window.setTimeout(() => {
@@ -114,6 +126,34 @@ function ProfilePage() {
     }
 
     loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionUser]);
+
+  useEffect(() => {
+    if (!sessionUser) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadOrganiserRequest() {
+      try {
+        const result = await getMyOrganiserRequest();
+        if (isMounted) {
+          setOrganiserRequest(result ?? null);
+        }
+      } catch {
+        if (isMounted) {
+          setOrganiserRequest(null);
+        }
+      } finally {
+        if (isMounted) setIsLoadingOrganiserRequest(false);
+      }
+    }
+
+    loadOrganiserRequest();
     return () => {
       isMounted = false;
     };
@@ -199,6 +239,29 @@ function ProfilePage() {
     }
   }
 
+  async function handleOrganiserRequestSubmit(event) {
+    event.preventDefault();
+    setOrganiserMessage({ type: "", text: "" });
+    setIsSubmittingOrganiserRequest(true);
+
+    try {
+      const result = await submitOrganiserRequest(organiserReason.trim() || null);
+      setOrganiserRequest(result);
+      setOrganiserReason("");
+      setOrganiserMessage({
+        type: "success",
+        text: "Request submitted. An administrator will review your application.",
+      });
+    } catch (error) {
+      setOrganiserMessage({
+        type: "error",
+        text: error.message || "Unable to submit your request.",
+      });
+    } finally {
+      setIsSubmittingOrganiserRequest(false);
+    }
+  }
+
   if (!sessionUser) {
     return (
       <GuestSignInPrompt
@@ -211,6 +274,11 @@ function ProfilePage() {
 
   const role = formatRole(profile.role_name);
   const profileInitial = profile.display_name?.charAt(0).toUpperCase() || "U";
+  const isPlainUser = profile.role_name === "user";
+  const hasPendingRequest = organiserRequest?.status === "pending";
+  const requestStatusText = organiserRequest
+    ? formatRole(organiserRequest.status)
+    : "";
 
   return (
     <div className="dashboard-shell">
@@ -374,6 +442,93 @@ function ProfilePage() {
                 </div>
               </form>
             </section>
+
+            {isPlainUser && (
+              <section className="profile-card">
+                <div className="profile-card-heading">
+                  <h2>Become an organiser</h2>
+                  <p>
+                    Request organiser access to create and manage events. An
+                    administrator will review your application.
+                  </p>
+                </div>
+
+                {isLoadingOrganiserRequest ? (
+                  <p className="profile-status" role="status">
+                    Loading request status...
+                  </p>
+                ) : (
+                  <>
+                    {organiserRequest && (
+                      <div
+                        className={`profile-status profile-status-${
+                          organiserRequest.status === "approved"
+                            ? "success"
+                            : organiserRequest.status === "rejected"
+                              ? "error"
+                              : "info"
+                        }`}
+                        role="status"
+                      >
+                        <strong>Current status: {requestStatusText}.</strong>{" "}
+                        {organiserRequest.status === "pending" &&
+                          "Waiting for an administrator to review your request."}
+                        {organiserRequest.status === "approved" &&
+                          "Your request was approved. Please sign in again to access the organiser workspace."}
+                        {organiserRequest.status === "rejected" &&
+                          "Your previous request was rejected. You may submit a new one."}
+                      </div>
+                    )}
+
+                    {!hasPendingRequest && (
+                      <form
+                        className="profile-form"
+                        onSubmit={handleOrganiserRequestSubmit}
+                      >
+                        <div className="profile-field">
+                          <label htmlFor="organiser_reason">
+                            Why do you want to become an organiser? (optional)
+                          </label>
+                          <textarea
+                            id="organiser_reason"
+                            name="organiser_reason"
+                            rows="4"
+                            maxLength="1000"
+                            placeholder="Tell the administrators about the events you plan to run."
+                            value={organiserReason}
+                            onChange={(event) =>
+                              setOrganiserReason(event.target.value)
+                            }
+                          />
+                          <small>{organiserReason.length}/1000 characters</small>
+                        </div>
+
+                        {organiserMessage.text && (
+                          <p
+                            className={`profile-status profile-status-${organiserMessage.type}`}
+                            role="status"
+                          >
+                            {organiserMessage.text}
+                          </p>
+                        )}
+
+                        <div className="profile-form-actions">
+                          <button
+                            className="profile-primary-button"
+                            type="submit"
+                            disabled={isSubmittingOrganiserRequest}
+                          >
+                            {isSubmittingOrganiserRequest
+                              ? "Submitting..."
+                              : "Request organiser access"}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </>
+                )}
+              </section>
+            )}
           </div>
 
           <aside className="profile-account-card">
