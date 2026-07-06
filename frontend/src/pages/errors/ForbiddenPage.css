@@ -1,0 +1,20 @@
+.forbidden-page {
+  display: grid;
+  min-height: calc(100vh - 178px);
+  padding: 48px 20px;
+  place-items: center;
+  text-align: center;
+}
+
+.forbidden-page h1 {
+  max-width: 680px;
+  margin: 0 auto;
+  color: #111827;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: -0.04em;
+}
+
+.forbidden-page p:not(.public-eyebrow) {
+  margin: 14px 0 24px;
+  color: #64748b;
+}

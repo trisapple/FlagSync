@@ -1,0 +1,199 @@
+.create-event-panel {
+max-width: 900px;
+}
+
+.create-event-panel-heading {
+padding: 24px 26px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.create-event-panel-heading h2 {
+margin: 0;
+  color: #111827;
+  font-size: 1.05rem;
+}
+
+.create-event-panel-heading p {
+margin: 7px 0 0;
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.create-event-form {
+display: grid;
+  gap: 20px;
+  padding: 24px 26px 26px;
+}
+
+.create-event-form .login-field {
+display: grid;
+  gap: 8px;
+}
+
+.create-event-form .login-field label {
+color: #334155;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.create-event-form .login-field small {
+color: #64748b;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.create-event-form .login-field input,
+.create-event-form .login-field select,
+.create-event-form .login-field textarea {
+width: 100%;
+  min-height: 47px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  color: #111827;
+  background: #ffffff;
+  font: inherit;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.create-event-form .login-field textarea {
+min-height: 120px;
+  padding-block: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.create-event-form .login-field input:focus,
+.create-event-form .login-field select:focus,
+.create-event-form .login-field textarea:focus {
+border-color: #4f46e5;
+  box-shadow: 0 0 0 4px rgb(79 70 229 / 12%);
+}
+
+.create-event-field-grid,
+.create-event-options {
+display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.create-event-option {
+display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.create-event-option input {
+width: 17px;
+  height: 17px;
+  margin: 2px 0 0;
+  accent-color: #4f46e5;
+}
+
+.create-event-option span {
+display: grid;
+  gap: 4px;
+}
+
+.create-event-option strong {
+color: #334155;
+  font-size: 0.86rem;
+}
+
+.create-event-option small {
+color: #64748b;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.create-event-actions {
+display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.create-event-actions button {
+min-height: 43px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.create-event-primary-button {
+border: 0;
+  color: #ffffff;
+  background: #4f46e5;
+}
+
+.create-event-primary-button:hover:not(:disabled) {
+background: #3730a3;
+}
+
+.create-event-secondary-button {
+border: 1px solid #cbd5e1;
+  color: #475569;
+  background: #ffffff;
+}
+
+.create-event-secondary-button:hover:not(:disabled) {
+background: #f8fafc;
+}
+
+.create-event-actions button:disabled {
+cursor: wait;
+  opacity: 0.65;
+}
+
+.create-event-form .login-field .challenge-file-picker > label {
+flex: 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 7px;
+  color: #4338ca;
+  background: #eef2ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.create-event-form .login-field .challenge-file-picker > label:hover {
+background: #e0e7ff;
+}
+
+.create-event-form .login-field .challenge-file-picker input {
+position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 650px) {
+.create-event-panel-heading,
+  .create-event-form {
+padding-inline: 18px;
+}
+
+.create-event-field-grid,
+  .create-event-options {
+grid-template-columns: 1fr;
+}
+
+.create-event-actions {
+flex-direction: column-reverse;
+}
+
+.create-event-actions button {
+width: 100%;
+}
+}

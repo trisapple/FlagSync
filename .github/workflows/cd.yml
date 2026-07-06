@@ -1,0 +1,101 @@
+name: FlagSync CD
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-frontend:
+    name: Build & deploy frontend
+    environment: production
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React application
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Create deploy directory on EC2
+        run: |
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} \
+            "mkdir -p ${{ secrets.FRONTEND_DEPLOY_PATH }}"
+
+      - name: Sync frontend build to EC2
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no" \
+            dist/ \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:${{ secrets.FRONTEND_DEPLOY_PATH }}/
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key
+
+  deploy-backend:
+    name: Deploy backend
+    environment: production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Pull latest code & restart backend
+        run: |
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            DEPLOY_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+            REPO_URL="${{ secrets.REPO_URL }}"
+            cd "$DEPLOY_PATH"
+            git fetch origin develop
+            git reset --hard origin/develop
+            cd backend
+            if [ ! -d ".venv" ]; then
+              python3 -m venv .venv
+            fi
+            source .venv/bin/activate
+            pip install -r requirements.txt --quiet
+            sudo systemctl restart flagsync-backend
+          EOF
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key

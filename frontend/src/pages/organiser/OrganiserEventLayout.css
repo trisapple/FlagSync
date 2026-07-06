@@ -1,0 +1,57 @@
+.manage-events-main {
+max-width: 1220px;
+}
+
+.manage-events-header {
+display: flex;
+  gap: 24px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.manage-events-header h1 {
+margin: 0;
+  color: #111827;
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.manage-events-header p:last-child {
+margin: 10px 0 0;
+  color: #64748b;
+}
+
+.manage-events-header > button {
+min-height: 43px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #4f46e5;
+  font-weight: 800;
+}
+
+.manage-events-header > button:disabled {
+cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.manage-events-panel {
+overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 5%);
+}
+
+.manage-events-list {
+display: grid;
+}
+
+@media (max-width: 650px) {
+.manage-events-header {
+align-items: flex-start;
+    flex-direction: column;
+}
+}
