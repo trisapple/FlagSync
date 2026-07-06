@@ -326,7 +326,8 @@ def update_user_role_endpoint(
 def list_admin_audit_logs(
     request: Request,
     action_type: str | None = Query(default=None),
-    actor_user_id: uuid.UUID | None = Query(default=None),
+    actor_user_id: str | None = Query(default=None),
+    result: str | None = Query(default=None),
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),
     page: int = Query(default=1, ge=1),
@@ -336,11 +337,19 @@ def list_admin_audit_logs(
 ) -> AuditLogsListResponse:
     require_roles(request, db, {"administrator"})
 
+    parsed_actor_id = None
+    if actor_user_id is not None:
+        try:
+            parsed_actor_id = uuid.UUID(actor_user_id)
+        except ValueError:
+            pass
+
     try:
         logs, total = get_audit_logs_paginated(
             db,
             action_type=action_type,
-            actor_user_id=actor_user_id,
+            actor_user_id=parsed_actor_id,
+            result=result,
             date_from=date_from,
             date_to=date_to,
             page=page,

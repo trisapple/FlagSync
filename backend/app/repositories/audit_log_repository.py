@@ -1,6 +1,6 @@
 import uuid
 from typing import Any
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import asc, desc, select, func
 from sqlalchemy.orm import Session
@@ -51,6 +51,7 @@ def get_audit_logs_paginated(
     *,
     action_type: str | None = None,
     actor_user_id: uuid.UUID | None = None,
+    result: str | None = None,
     date_from: "date | None" = None,
     date_to: "date | None" = None,
     page: int = 1,
@@ -65,17 +66,29 @@ def get_audit_logs_paginated(
     if actor_user_id is not None:
         statement = statement.where(AuditLog.actor_user_id == actor_user_id)
 
+    if result:
+        statement = statement.where(AuditLog.result == result)
+
     if date_from:
         start_dt = datetime(
-            date_from.year, date_from.month, date_from.day, tzinfo=timezone.utc
-        )
+            date_from.year,
+            date_from.month,
+            date_from.day,
+            tzinfo=timezone(timedelta(hours=8)),
+        ).astimezone(timezone.utc)
         statement = statement.where(AuditLog.created_at >= start_dt)
 
     if date_to:
-        end_dt = datetime(
-            date_to.year, date_to.month, date_to.day, 23, 59, 59, tzinfo=timezone.utc
-        )
-        statement = statement.where(AuditLog.created_at <= end_dt)
+        end_dt = (
+            datetime(
+                date_to.year,
+                date_to.month,
+                date_to.day,
+                tzinfo=timezone(timedelta(hours=8)),
+            )
+            + timedelta(days=1)
+        ).astimezone(timezone.utc)
+        statement = statement.where(AuditLog.created_at < end_dt)
 
     count_statement = select(func.count()).select_from(statement.subquery())
     total = db.scalar(count_statement) or 0

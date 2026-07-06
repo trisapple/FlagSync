@@ -6,13 +6,13 @@
 .audit-logs-total span { color: #64748b; font-size: .72rem; }
 .audit-logs-total strong { margin-top: 5px; color: #4f46e5; font-size: 1.45rem; }
 .audit-logs-panel { overflow: hidden; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; box-shadow: 0 12px 30px rgb(15 23 42 / 5%); }
-.audit-log-filters { display: grid; grid-template-columns: minmax(180px, 1fr) 145px minmax(180px, 1fr) 145px 145px auto; gap: 12px; align-items: end; padding: 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.audit-log-filters { display: grid; grid-template-columns: minmax(180px, 1fr) 145px minmax(180px, 1fr) 145px 145px minmax(180px, auto); gap: 12px; align-items: end; padding: 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
 .audit-log-filters > div { display: grid; gap: 7px; }
 .audit-log-filters label { color: #475569; font-size: .7rem; font-weight: 800; }
 .audit-log-filters input, .audit-log-filters select { min-width: 0; min-height: 42px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background: #fff; }
 .audit-log-filters input:focus, .audit-log-filters select:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgb(79 70 229 / 11%); }
-.audit-filter-actions { display: flex !important; flex-direction: row; gap: 7px !important; }
-.audit-filter-actions button { min-height: 42px; padding: 0 12px; border: 1px solid #c7d2fe; border-radius: 8px; color: #4338ca; background: #fff; font-weight: 800; cursor: pointer; }
+.audit-filter-actions { display: flex !important; flex-direction: row; gap: 7px !important; align-self: end; }
+.audit-filter-actions button { min-width: 80px; min-height: 42px; padding: 0 12px; border: 1px solid #c7d2fe; border-radius: 8px; color: #4338ca; background: #fff; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .audit-filter-actions button:first-child { color: #fff; background: #4f46e5; }
 .audit-logs-table-wrap { overflow-x: auto; }
 .audit-logs-table { width: 100%; border-collapse: collapse; }
@@ -38,6 +38,7 @@
 
 @media (max-width: 1100px) {
   .audit-log-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .audit-filter-actions { grid-column: 1 / -1; }
 }
 @media (max-width: 700px) {
   .audit-logs-header { align-items: flex-start; flex-direction: column; }
