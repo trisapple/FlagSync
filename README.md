@@ -106,6 +106,14 @@ Run all checks:
 - `GET /api/health` checks that the API is running
 - `GET /api/health/database` checks the database connection
 
+## Report Quick Answers
+
+1. **What is the overall FlagSync architecture?**  
+   FlagSync is a full-stack web app with a React/Vite frontend (`frontend/`) and a FastAPI backend (`backend/`). The frontend calls backend REST APIs over HTTP.
+
+2. **What is `frontend/.env` used for?**  
+   `frontend/.env` stores frontend runtime configuration, especially `VITE_API_BASE_URL` (for example `http://localhost:8000/api`) so the React app knows which backend API to call.
+
 ## Notes
 
 - Keep frontend environment values in `frontend/.env`.
