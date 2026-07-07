@@ -838,6 +838,36 @@ note for ErrorPages "frontend/src/pages/errors/*.jsx"
 
 ---
 
+## Report Q&A Quick Reference
+
+Use the following answers when preparing common report questions about this repository:
+
+1. **What architecture pattern does FlagSync use?**  
+   It is a full-stack web application with a React/Vite frontend (`frontend/src`) and a FastAPI backend (`backend/app`), connected through REST API routes mounted in `backend/app/main.py`.
+
+2. **How is authentication implemented?**  
+   Authentication is handled through `/api/auth` endpoints in `backend/app/routers/auth_router.py`, including registration challenge validation, login, OTP verification (`/login/verify-otp`), and logout.
+
+3. **How does authorization work?**  
+   The backend enforces role-based access using roles seeded at startup (`administrator`, `organiser`, `user`) in `backend/app/main.py`, and frontend route guards enforce allowed roles in `frontend/src/routes/AppRoutes.jsx`.
+
+4. **Where are key security controls located?**  
+   Security headers and no-store headers are applied in middleware in `backend/app/main.py`, while password policy, token/session logic, and audit logging helpers are centralized in `backend/app/services/auth_service.py`.
+
+5. **How is auditing handled?**  
+   Audit events are recorded from auth and admin flows via `record_audit_event(...)` calls in backend services/routers and exposed to administrators through backend audit routes and the frontend page `frontend/src/pages/administrator/AuditLogsPage.jsx`.
+
+6. **What quality gates are already defined?**  
+   The repository includes frontend lint/build checks, backend Ruff + Pytest checks, and security tooling (Bandit, npm audit, pip-audit) in `scripts/check.sh`, plus CI workflows under `.github/workflows/`.
+
+7. **What are the main user journeys in the frontend?**  
+   Public flows include home, login, registration, and event browsing; authenticated flows include dashboards and role-specific pages for users, organisers, and administrators, all defined in `frontend/src/routes/AppRoutes.jsx`.
+
+8. **How is service health monitored?**  
+   Backend health endpoints are available at `/`, `/api/health`, and `/api/health/database` in `backend/app/main.py`.
+
+---
+
 ## Excluded from This Report
 
 The following directories/files were excluded from this listing as they are auto-generated or dependencies:
