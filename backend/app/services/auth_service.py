@@ -15,7 +15,8 @@ from typing import Any
 import redis
 import requests
 from fastapi import HTTPException, Request, Response, status
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 from passlib.context import CryptContext
 from passlib.exc import InvalidHashError, UnknownHashError
 from sqlalchemy.orm import Session
@@ -526,7 +527,7 @@ def try_revoke_existing_session(request: Request) -> None:
         return
     try:
         token_data = decode_access_token(token)
-    except (JWTError, KeyError, ValueError, TypeError):
+    except (PyJWTError, KeyError, ValueError, TypeError):
         return
     revoke_token(token_data)
 
@@ -776,7 +777,7 @@ def get_current_auth_context(
         token_data = decode_access_token(token)
         user_id = uuid.UUID(token_data["sub"])
         jti = str(token_data["jti"])
-    except (JWTError, KeyError, ValueError, TypeError):
+    except (PyJWTError, KeyError, ValueError, TypeError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
