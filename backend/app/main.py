@@ -80,9 +80,7 @@ async def security_headers_middleware(request, call_next):
     response = await call_next(request)
     apply_security_headers(response)
 
-    if request.url.path.startswith(
-        ("/api/auth", "/api/audit-logs", "/api/admin")
-    ):
+    if request.url.path.startswith(("/api/auth", "/api/audit-logs", "/api/admin")):
         apply_no_store_headers(response)
 
     return response
