@@ -1,0 +1,35 @@
+.session-modal-backdrop {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  padding: 28px;
+  place-items: center;
+  background: rgb(15 23 42 / 58%);
+  backdrop-filter: blur(4px);
+}
+
+.session-expired-modal {
+  width: min(100%, 460px);
+  padding: 32px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 30px 80px rgb(15 23 42 / 28%);
+}
+
+.session-expired-modal h2 {
+  margin: 4px 0 10px;
+  color: #111827;
+}
+
+@media (max-width: 560px) {
+  .session-modal-backdrop {
+    padding: 14px;
+    place-items: start center;
+  }
+
+  .session-expired-modal {
+    padding: 24px;
+  }
+}
