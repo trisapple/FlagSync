@@ -83,9 +83,8 @@ def _load_secret_key() -> str:
 SECRET_KEY = _load_secret_key()
 
 pwd_context = CryptContext(
-    schemes=["argon2", "bcrypt"],
+    schemes=["argon2"],
     deprecated="auto",
-    bcrypt__rounds=12,
 )
 
 COMMON_BREACHED_PASSWORDS = {
