@@ -3,7 +3,7 @@ name: FlagSync CD
 on:
   push:
     branches:
-      - develop
+      - main
   workflow_dispatch:
 
 permissions:
@@ -85,8 +85,8 @@ jobs:
             DEPLOY_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
             REPO_URL="${{ secrets.REPO_URL }}"
             cd "$DEPLOY_PATH"
-            git fetch origin develop
-            git reset --hard origin/develop
+            git fetch origin main
+            git reset --hard origin/main
             cd backend
             if [ ! -d ".venv" ]; then
               python3 -m venv .venv

@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import os
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -5,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from contextlib import asynccontextmanager
 
 from app.database import Base, SessionLocal, engine, get_db
 from app.models.role import Role
@@ -89,21 +89,28 @@ async def security_headers_middleware(request, call_next):
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(roles_router)
 app.include_router(events_router)
+
 app.include_router(event_announcement_router)
 app.include_router(announcement_router)
+
 app.include_router(event_resource_router)
 app.include_router(resource_router)
+
 app.include_router(event_registration_router)
 app.include_router(event_participants_router)
 app.include_router(registrations_me_router)
+
 app.include_router(event_teams_router)
 app.include_router(teams_router)
+
 app.include_router(event_challenges_router)
 app.include_router(challenges_router)
+
 app.include_router(leaderboard_router)
 app.include_router(analytics_router)
 app.include_router(audit_logs_router)
 app.include_router(admin_router)
+
 app.include_router(organiser_requests_user_router)
 app.include_router(organiser_requests_admin_router)
 

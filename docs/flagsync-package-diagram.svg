@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1070" viewBox="0 0 1400 1070" role="img" aria-labelledby="title desc">
+  <title id="title">FlagSync package diagram</title>
+  <desc id="desc">Layered package diagram showing the React frontend, FastAPI backend, persistence packages, cross-cutting concerns, users, and external systems.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#16324a"/>
+    </marker>
+    <style>
+      .canvas { fill: #70c5e8; stroke: #16324a; stroke-width: 2; }
+      .pkg { fill: #a9ddf2; stroke: #16324a; stroke-width: 2; }
+      .tab { fill: #a9ddf2; stroke: #16324a; stroke-width: 2; }
+      .unit { fill: #d7f0fa; stroke: #16324a; stroke-width: 1.7; }
+      .external { fill: #f2e7b8; stroke: #16324a; stroke-width: 1.8; }
+      .title { font: 700 24px Arial, sans-serif; fill: #102a3d; }
+      .package-title { font: 700 16px Arial, sans-serif; fill: #102a3d; }
+      .label { font: 14px Arial, sans-serif; fill: #102a3d; text-anchor: middle; }
+      .small { font: 12px Arial, sans-serif; fill: #27475d; text-anchor: middle; }
+      .dep { fill: none; stroke: #16324a; stroke-width: 1.8; stroke-dasharray: 8 6; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect class="canvas" x="1" y="35" width="1398" height="1034"/>
+  <rect class="tab" x="1" y="9" width="250" height="27"/>
+  <text class="title" x="700" y="67" text-anchor="middle">FlagSync Layered Application</text>
+
+  <!-- Actors and external systems -->
+  <g transform="translate(0 35)">
+  <rect class="external" x="28" y="105" width="125" height="68"/>
+  <rect class="tab" x="28" y="86" width="27" height="20"/>
+  <text class="label" x="90" y="135">Users</text>
+  <text class="small" x="90" y="153">Browser clients</text>
+
+  <rect class="external" x="1195" y="82" width="180" height="145"/>
+  <rect class="tab" x="1195" y="63" width="38" height="20"/>
+  <text class="label" x="1285" y="112">External Systems</text>
+  <text class="small" x="1285" y="139">SMTP email provider</text>
+  <text class="small" x="1285" y="160">Supabase file storage</text>
+  <text class="small" x="1285" y="181">Redis</text>
+  <text class="small" x="1285" y="202">GitHub Actions</text>
+
+  <!-- Presentation layer -->
+  <rect class="pkg" x="205" y="82" width="445" height="205"/>
+  <rect class="tab" x="205" y="57" width="72" height="26"/>
+  <text class="package-title" x="427" y="108" text-anchor="middle">Presentation Layer · frontend/src</text>
+
+  <rect class="unit" x="230" y="133" width="118" height="68"/>
+  <rect class="tab" x="230" y="118" width="25" height="16"/>
+  <text class="label" x="289" y="162">routes</text>
+  <text class="small" x="289" y="181">AppRoutes</text>
+
+  <rect class="unit" x="370" y="133" width="118" height="68"/>
+  <rect class="tab" x="370" y="118" width="25" height="16"/>
+  <text class="label" x="429" y="162">pages</text>
+  <text class="small" x="429" y="181">public · user</text>
+
+  <rect class="unit" x="510" y="133" width="118" height="68"/>
+  <rect class="tab" x="510" y="118" width="25" height="16"/>
+  <text class="label" x="569" y="162">components</text>
+  <text class="small" x="569" y="181">layouts · auth · audit</text>
+
+  <rect class="unit" x="265" y="224" width="105" height="44"/>
+  <rect class="tab" x="265" y="209" width="25" height="16"/>
+  <text class="label" x="317" y="251">hooks</text>
+
+  <rect class="unit" x="390" y="224" width="105" height="44"/>
+  <rect class="tab" x="390" y="209" width="25" height="16"/>
+  <text class="label" x="442" y="251">utils</text>
+
+  <rect class="unit" x="515" y="224" width="105" height="44"/>
+  <rect class="tab" x="515" y="209" width="25" height="16"/>
+  <text class="label" x="567" y="251">React Router</text>
+
+  <!-- Client service layer -->
+  <rect class="pkg" x="720" y="82" width="415" height="150"/>
+  <rect class="tab" x="720" y="57" width="72" height="26"/>
+  <text class="package-title" x="927" y="108" text-anchor="middle">Service Layer</text>
+
+  <rect class="unit" x="750" y="133" width="220" height="68"/>
+  <rect class="tab" x="750" y="118" width="28" height="16"/>
+  <text class="label" x="860" y="160">services</text>
+  <text class="small" x="860" y="180">auth · events · challenges · teams</text>
+
+  <rect class="unit" x="995" y="133" width="112" height="68"/>
+  <rect class="tab" x="995" y="118" width="28" height="16"/>
+  <text class="label" x="1051" y="160">api</text>
+  <text class="small" x="1051" y="180">Axios client</text>
+  </g>
+
+  <!-- Application/business layer -->
+  <g transform="translate(0 30)">
+  <rect class="pkg" x="205" y="350" width="930" height="270"/>
+  <rect class="tab" x="205" y="325" width="105" height="26"/>
+  <text class="package-title" x="670" y="380" text-anchor="middle">Application / Business Layer · backend/app</text>
+
+  <rect class="unit" x="245" y="415" width="155" height="70"/>
+  <rect class="tab" x="245" y="398" width="30" height="18"/>
+  <text class="label" x="322" y="441">Application Entry Point</text>
+  <text class="small" x="322" y="463">FastAPI app composition</text>
+
+  <rect class="unit" x="445" y="415" width="225" height="70"/>
+  <rect class="tab" x="445" y="398" width="30" height="18"/>
+  <text class="label" x="557" y="441">routers</text>
+  <text class="small" x="557" y="461">auth · events · teams · admin</text>
+
+  <rect class="unit" x="715" y="415" width="170" height="70"/>
+  <rect class="tab" x="715" y="398" width="30" height="18"/>
+  <text class="label" x="800" y="441">schemas</text>
+  <text class="small" x="800" y="461">request / response DTOs</text>
+
+  <rect class="unit" x="930" y="415" width="170" height="70"/>
+  <rect class="tab" x="930" y="398" width="30" height="18"/>
+  <text class="label" x="1015" y="441">services</text>
+  <text class="small" x="1015" y="461">auth · email · storage</text>
+
+  <rect class="unit" x="390" y="530" width="220" height="62"/>
+  <rect class="tab" x="390" y="513" width="30" height="18"/>
+  <text class="label" x="500" y="554">Feature workflows</text>
+  <text class="small" x="500" y="574">CTF events · registration · scoring</text>
+
+  <rect class="unit" x="680" y="530" width="220" height="62"/>
+  <rect class="tab" x="680" y="513" width="30" height="18"/>
+  <text class="label" x="790" y="554">Business entities</text>
+  <text class="small" x="790" y="574">users · events · teams · challenges</text>
+
+  <!-- Data layer -->
+  <rect class="pkg" x="205" y="690" width="930" height="175"/>
+  <rect class="tab" x="205" y="665" width="105" height="26"/>
+  <text class="package-title" x="670" y="720" text-anchor="middle">Data / Persistence Layer</text>
+
+  <rect class="unit" x="270" y="755" width="225" height="70"/>
+  <rect class="tab" x="270" y="738" width="30" height="18"/>
+  <text class="label" x="382" y="781">repositories</text>
+  <text class="small" x="382" y="801">SQLAlchemy queries and commands</text>
+
+  <rect class="unit" x="555" y="755" width="190" height="70"/>
+  <rect class="tab" x="555" y="738" width="30" height="18"/>
+  <text class="label" x="650" y="781">models</text>
+  <text class="small" x="650" y="801">ORM entities / relations</text>
+
+  <rect class="unit" x="805" y="755" width="260" height="70"/>
+  <rect class="tab" x="805" y="738" width="30" height="18"/>
+  <text class="label" x="935" y="781">database</text>
+  <text class="small" x="935" y="801">engine · sessions · migrations</text>
+
+  <!-- Data sources -->
+  <rect class="external" x="445" y="925" width="450" height="78"/>
+  <rect class="tab" x="445" y="906" width="58" height="20"/>
+  <text class="label" x="670" y="954">Data Sources</text>
+  <text class="small" x="670" y="977">PostgreSQL / Supabase · SQLite local fallback</text>
+
+  <!-- Cross-cutting package -->
+  <rect class="pkg" x="1190" y="350" width="175" height="515"/>
+  <rect class="tab" x="1190" y="325" width="55" height="26"/>
+  <text class="package-title" x="1277" y="380" text-anchor="middle">Cross-Cutting</text>
+
+  <rect class="unit" x="1210" y="420" width="135" height="82"/>
+  <rect class="tab" x="1210" y="403" width="28" height="18"/>
+  <text class="label" x="1277" y="447">Security</text>
+  <text class="small" x="1277" y="467">RBAC · sessions</text>
+  <text class="small" x="1277" y="484">headers · CORS</text>
+
+  <rect class="unit" x="1210" y="550" width="135" height="82"/>
+  <rect class="tab" x="1210" y="533" width="28" height="18"/>
+  <text class="label" x="1277" y="577">Operations</text>
+  <text class="small" x="1277" y="597">health checks</text>
+  <text class="small" x="1277" y="614">configuration</text>
+
+  <rect class="unit" x="1210" y="680" width="135" height="82"/>
+  <rect class="tab" x="1210" y="663" width="28" height="18"/>
+  <text class="label" x="1277" y="707">Audit</text>
+  <text class="small" x="1277" y="727">audit logs</text>
+  <text class="small" x="1277" y="744">safe diagnostics</text>
+  </g>
+
+  <!-- Dependencies -->
+  <path class="dep" d="M153 174 H205"/>
+  <path class="dep" d="M650 219 H720"/>
+  <path class="dep" d="M927 267 V350 H557 V428"/>
+  <path class="dep" d="M400 480 H445"/>
+  <path class="dep" d="M670 480 H715"/>
+  <path class="dep" d="M557 515 V560"/>
+  <path class="dep" d="M1015 515 V540 H790 V560"/>
+  <path class="dep" d="M610 591 H680"/>
+  <path class="dep" d="M500 622 V680 H382 V768"/>
+  <path class="dep" d="M790 622 V680 H650 V768"/>
+  <path class="dep" d="M495 820 H555"/>
+  <path class="dep" d="M745 820 H805"/>
+  <path class="dep" d="M935 855 V920 H670 V955"/>
+  <path class="dep" d="M1135 515 H1190"/>
+  <path class="dep" d="M1135 820 H1160 V751 H1210"/>
+  <path class="dep" d="M1277 380 V320 H1285 V262"/>
+
+  <text class="small" x="680" y="340">HTTPS / JSON REST API</text>
+</svg>

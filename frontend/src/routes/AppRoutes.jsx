@@ -1,35 +1,42 @@
 import { Route, Routes } from "react-router-dom";
+
 import RequireGuest from "../components/auth/RequireGuest";
-import HomePage from "../pages/public/HomePage";
-import LoginPage from "../pages/public/LoginPage";
-import LoginOtpPage from "../pages/public/LoginOtpPage";
-import RegisterPage from "../pages/public/RegisterPage";
-import VerifyEmailPage from "../pages/public/VerifyEmailPage";
-import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
-import ResetPasswordPage from "../pages/public/ResetPasswordPage";
-import EventsPage from "../pages/public/EventsPage";
-import EventDetailsPage from "../pages/public/EventDetailsPage";
-import NotFoundPage from "../pages/errors/NotFoundPage";
+import RequireAuth from "../components/auth/RequireAuth";
+
 import AdminDashboardPage from "../pages/administrator/AdminDashboardPage";
 import AdminUsersPage from "../pages/administrator/AdminUsersPage";
 import AuditLogsPage from "../pages/administrator/AuditLogsPage";
 import OrganiserRequestsPage from "../pages/administrator/OrganiserRequestsPage";
-import OrganiserDashboardPage from "../pages/organiser/OrganiserDashboardPage";
-import ManageEventsPage from "../pages/organiser/ManageEventsPage";
+
+import AccountProfilePage from "../pages/account/ProfilePage";
+import NotFoundPage from "../pages/errors/NotFoundPage";
+import ForbiddenPage from "../pages/errors/ForbiddenPage";
+
 import CreateEventPage from "../pages/organiser/CreateEventPage";
 import EditEventPage from "../pages/organiser/EditEventPage";
-import EventAnnouncementsPage from "../pages/organiser/EventAnnouncementsPage";
 import EventAnalyticsPage from "../pages/organiser/EventAnalyticsPage";
-import EventResourcesPage from "../pages/organiser/EventResourcesPage";
-import EventParticipantsPage from "../pages/organiser/EventParticipantsPage";
+import EventAnnouncementsPage from "../pages/organiser/EventAnnouncementsPage";
 import EventChallengesOrganiserPage from "../pages/organiser/EventChallengesPage";
+import EventParticipantsPage from "../pages/organiser/EventParticipantsPage";
+import EventResourcesPage from "../pages/organiser/EventResourcesPage";
+import ManageEventsPage from "../pages/organiser/ManageEventsPage";
+import OrganiserDashboardPage from "../pages/organiser/OrganiserDashboardPage";
+
+import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
+import HomePage from "../pages/public/HomePage";
+import EventDetailsPage from "../pages/public/EventDetailsPage";
 import EventChallengesPage from "../pages/public/EventChallengesPage";
 import EventLeaderboardPage from "../pages/public/EventLeaderboardPage";
-import RequireAuth from "../components/auth/RequireAuth";
-import UserDashboardPage from "../pages/user/UserDashboardPage";
+import LoginPage from "../pages/public/LoginPage";
+import LoginOtpPage from "../pages/public/LoginOtpPage";
+import RegisterPage from "../pages/public/RegisterPage";
+import ResetPasswordPage from "../pages/public/ResetPasswordPage";
+import EventsPage from "../pages/public/EventsPage";
+import VerifyEmailPage from "../pages/public/VerifyEmailPage";
+
 import RegisteredEventsPage from "../pages/user/RegisteredEventsPage";
-import AccountProfilePage from "../pages/account/ProfilePage";
-import ForbiddenPage from "../pages/errors/ForbiddenPage";
+import UserDashboardPage from "../pages/user/UserDashboardPage";
+
 import { DASHBOARD_PATHS } from "../utils/roleRoutes";
 
 function AppRoutes() {
@@ -66,6 +73,7 @@ function AppRoutes() {
       <Route path="/events" element={<EventsPage />} />
       <Route path="/events/registered" element={<RegisteredEventsPage />} />
       <Route path="/events/:eventId" element={<EventDetailsPage />} />
+
       <Route
         path="/organiser/events/manage"
         element={
@@ -130,6 +138,7 @@ function AppRoutes() {
         path="/events/:eventId/leaderboard"
         element={<EventLeaderboardPage />}
       />
+
       <Route
         path="/organiser/events/:eventId/resources"
         element={
@@ -163,7 +172,9 @@ function AppRoutes() {
           </RequireAuth>
         }
       />
+
       <Route path="/403" element={<ForbiddenPage />} />
+
       <Route
         path={DASHBOARD_PATHS.administrator}
         element={
