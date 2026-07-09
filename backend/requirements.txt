@@ -41,7 +41,7 @@ PyJWT==2.13.0
 PyYAML==6.0.3
 requests==2.34.2
 rich==15.0.0
-ruff==0.15.17
+ruff==0.15.20
 bleach==6.4.0
 python-multipart==0.0.31
 redis==6.4.0
